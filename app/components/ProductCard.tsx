@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { useCart } from "../providers/CartProvider";
-import { Lang, ui } from "../i18n/config";
+import { Lang, ui, defaultLang } from "../i18n/config";
 
 type Props = {
   id: string;
   name: string;
   price: number;
   image: string;
-  lang: Lang;
+  lang?: Lang;
 };
 
 export default function ProductCard({ id, name, price, image, lang }: Props) {
   const { addItem } = useCart();
-  const t = ui[lang];
+  const langUsed = lang ?? defaultLang;
+  const t = ui[langUsed];
 
   return (
     <article className="group bg-white rounded-lg overflow-hidden shadow-subtle hover:shadow-card transition-shadow duration-300">

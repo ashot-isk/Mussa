@@ -1,63 +1,67 @@
-import Header from "../../components/Header";
-import Footer from "../../components/Footer";
-import { ui, Lang } from "../../i18n/config";
+import Header from "../components/Header";
+import Footer from "../components/Footer";
+import { ui, Lang } from "../i18n/config";
+import ProductCard from "../components/ProductCard";
 
-export default function VendingPage({ params }: { params: { lang: Lang } }) {
+export default function Home({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
-  const isRu = params.lang === "ru";
-  const isHy = params.lang === "hy";
 
   return (
     <>
       <Header t={t} />
-      <main className="max-w-5xl mx-auto px-6 py-16">
-        <h1 className="font-serif text-3xl md:text-4xl mb-6">
-          {t.vending.heading}
-        </h1>
-        <div className="rounded-3xl overflow-hidden bg-bgSecondary shadow mb-8">
-          <img
-            src="/vending/Vending_Image.jpeg"
-            alt="mussa vending machine"
-            className="w-full h-64 md:h-96 object-cover"
-          />
-        </div>
-        <h2 className="font-serif text-2xl mb-2">{t.vending.dimensions}</h2>
-        <ul className="list-disc ml-6 text-sm text-dark/80 space-y-1 mb-6">
-          <li>Height: 2300 mm</li>
-          <li>Width: 1870 mm</li>
-          <li>Depth: 900 mm</li>
-          <li>Clearance: 100 mm around</li>
-        </ul>
-        <h2 className="font-serif text-2xl mb-2">{t.vending.power}</h2>
-        <ul className="list-disc ml-6 text-sm text-dark/80 space-y-1 mb-6">
-          <li>220–240V AC, 50/60 Hz</li>
-          <li>Max load: 1.2 kW</li>
-          <li>Standard grounded socket</li>
-        </ul>
-        <h2 className="font-serif text-2xl mb-2">{t.vending.service}</h2>
-        <ul className="list-disc ml-6 text-sm text-dark/80 space-y-1 mb-6">
-          <li>
-            {isRu
-              ? "Контроль температуры внутри камеры: +2…+6°C ежедневно."
-              : isHy
-              ? "Մշտական ջերմաստիճանի վերահսկում՝ +2…+6°C։"
-              : "Daily temperature check: +2…+6°C."}
-          </li>
-          <li>
-            {isRu
-              ? "Обновление цветов каждые 24–48 часов."
-              : isHy
-              ? "Ծաղիկների թարմացում՝ յուրաքանչյուր 24–48 ժամում։"
-              : "Flower refill every 24–48 hours."}
-          </li>
-          <li>
-            {isRu
-              ? "Опционально — модуль удалённого мониторинга."
-              : isHy
-              ? "Հնարավոր է հեռավար մոնիթորինգի մոդուլ։"
-              : "Optional remote monitoring module."}
-          </li>
-        </ul>
+      <main>
+        <section className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10">
+          <div>
+            <h1 className="font-serif text-4xl md:text-5xl">{t.hero.title}</h1>
+            <p className="mt-4 text-dark/70">{t.hero.subtitle}</p>
+            <div className="mt-6 flex gap-4 flex-wrap">
+              <a
+                href={`/${params.lang}/shop`}
+                className="px-6 py-3 bg-accent text-white rounded-full text-xs uppercase tracking-[0.12em]"
+              >
+                {t.hero.shop}
+              </a>
+              <a
+                href={`/${params.lang}/shop`}
+                className="px-6 py-3 border border-dark rounded-full text-xs uppercase tracking-[0.12em]"
+              >
+                {t.hero.seasonal}
+              </a>
+            </div>
+          </div>
+          <div className="rounded-3xl overflow-hidden bg-bgSecondary shadow">
+            <img
+              src="/images/hero.jpg"
+              alt="MUSSA bouquet"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </section>
+        <section className="max-w-6xl mx-auto px-6 pb-16">
+          <div className="flex items-end justify-between mb-4">
+            <h2 className="font-serif text-2xl">Trending now</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-5">
+            <ProductCard
+              id="peony"
+              name="Pastel Peony Dream"
+              price={48000}
+              image="https://images.unsplash.com/photo-1509043759401-136742328bb3?auto=format&fit=crop&w=900&q=80"
+            />
+            <ProductCard
+              id="white-roses"
+              name="White Garden Roses"
+              price={39000}
+              image="https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=900&q=80"
+            />
+            <ProductCard
+              id="box"
+              name="MUSSA Signature Box"
+              price={55000}
+              image="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80"
+            />
+          </div>
+        </section>
       </main>
       <Footer t={t} />
     </>

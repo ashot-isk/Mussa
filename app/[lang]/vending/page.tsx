@@ -18,15 +18,15 @@ export default function VendingPage({ params }: { params: { lang: Lang } }) {
           <img
             src="/vending/Vending_Image.jpeg"
             alt="mussa vending machine"
-            className="w-full h-64 md:h-96 object-cover"
+            className="w-full"
           />
         </div>
         <h2 className="font-serif text-2xl mb-2">{t.vending.dimensions}</h2>
         <ul className="list-disc ml-6 text-sm text-dark/80 space-y-1 mb-6">
-          <li>Height: 2300 mm</li>
-          <li>Width: 1870 mm</li>
-          <li>Depth: 900 mm</li>
-          <li>Clearance: 100 mm around</li>
+          <li>Height: 230 mm</li>
+          <li>Width: 187 mm</li>
+          <li>Depth: 90 mm</li>
+          <li>Clearance: 10 mm around</li>
         </ul>
         <h2 className="font-serif text-2xl mb-2">{t.vending.power}</h2>
         <ul className="list-disc ml-6 text-sm text-dark/80 space-y-1 mb-6">
