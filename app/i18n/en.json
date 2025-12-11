@@ -1,0 +1,54 @@
+{
+  "nav": {
+    "home": "Home",
+    "shop": "Shop",
+    "about": "About",
+    "contact": "Contact",
+    "vending": "Vending"
+  },
+  "hero": {
+    "title": "mussa Floral Studio",
+    "subtitle": "Flowers that speak for you.",
+    "shop": "Shop bouquets",
+    "seasonal": "Seasonal collection"
+  },
+
+  "featured": {
+    "heading": "Featured Collection"
+  },
+  "product": {
+    "add_to_cart": "Add to cart",
+    "composition": "Composition",
+    "placeholder": "Product description coming soon.",
+    "products": {
+      "peony": {
+        "title": "Pastel Peony Dream",
+        "description": "A soft, romantic arrangement of peonies in pastel shades — perfect for anniversaries and special moments."
+      },
+      "white-roses": {
+        "title": "White Garden Roses",
+        "description": "Classic white garden roses arranged with delicate greenery."
+      },
+      "box": {
+        "title": "mussa Signature Box",
+        "description": "Our signature boxed arrangement — premium stems presented in a luxury box."
+      }
+    }
+  },
+  "vending": {
+    "heading": "Technical Specifications: mussa Vending Machine",
+    "dimensions": "Dimensions",
+    "power": "Power & Electrical",
+    "service": "Maintenance & Support"
+  },
+  "footer": {
+    "tagline": "Floral studio in nude pastel tones.",
+    "shop_title": "Shop",
+    "shop_desc": "Bouquets, boxes, seasonal flowers.",
+    "about_title": "About",
+    "about_desc": "Soft luxury floral studio.",
+    "contact_title": "Contact",
+    "contact_desc": "Instagram: @mussa.floralstudio",
+    "copyright": "© {year} mussa Floral Studio. All rights reserved."
+  }
+}

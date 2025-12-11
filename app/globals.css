@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-bgMain text-dark;
+  /* Restore previous body font application */
+  font-family: var(--font-sans);
+}
+
+/* Brand font from /public/mussa logo files/Font */
+@font-face {
+  font-family: "Dahlia";
+  src: url("/mussa logo files/Font/Dahlia Regular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Dahlia";
+  src: url("/mussa logo files/Font/Dahlia Bold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+.brand-font {
+  font-family: "Dahlia", var(--font-serif), serif;
+  letter-spacing: 0.14em;
+  font-weight: 400;
+  text-transform: none; /* preserve case */
+  display: inline-block;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: inherit;
+}
+
+/* utility to apply brand look to headings */
+.brand-heading {
+  font-family: "Dahlia", var(--font-serif), serif;
+  letter-spacing: 0.12em;
+  font-weight: 300;
+  text-transform: none; /* preserve case */
+}
