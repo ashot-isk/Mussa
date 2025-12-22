@@ -1,19 +1,25 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Data;
 using MussaApi.Models;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace MussaApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
+    private readonly IWebHostEnvironment _environment;
 
-    public ProductsController(ApplicationDbContext context)
+    public ProductsController(ApplicationDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     // GET: api/products
@@ -91,6 +97,43 @@ public class ProductsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return NoContent();
+    }
+
+    // POST: api/products/{id}/upload-image
+    [HttpPost("{id}/upload-image")]
+    public async Task<IActionResult> UploadProductImage(int id, IFormFile file)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product == null)
+        {
+            return NotFound();
+        }
+
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        var uploadsFolder = Path.Combine(_environment.WebRootPath, "images");
+        if (!Directory.Exists(uploadsFolder))
+        {
+            Directory.CreateDirectory(uploadsFolder);
+        }
+
+        var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+        var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var imageUrl = $"/images/{uniqueFileName}";
+        product.ImageUrl = imageUrl;
+        product.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { imageUrl, productId = id });
     }
 
     private bool ProductExists(int id)

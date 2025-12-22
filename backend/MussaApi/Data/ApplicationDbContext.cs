@@ -11,6 +11,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<Product> Products { get; set; }
+    public DbSet<User> Users { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +26,17 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Price).HasColumnType("decimal(18,2)");
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
             entity.Property(e => e.Stock).HasDefaultValue(0);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        // Configure User entity
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Username).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.PasswordHash).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Role).IsRequired().HasMaxLength(50).HasDefaultValue("User");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
         });
