@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace MussaApi.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251222173033_SeedSupervisorUser")]
-    partial class SeedSupervisorUser
+    [Migration("20251222174549_FreshStart")]
+    partial class FreshStart
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,11 +27,9 @@ namespace MussaApi.Migrations
 
             modelBuilder.Entity("MussaApi.Models.Product", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -72,11 +70,9 @@ namespace MussaApi.Migrations
 
             modelBuilder.Entity("MussaApi.Models.User", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -112,11 +108,11 @@ namespace MussaApi.Migrations
                     b.HasData(
                         new
                         {
-                            Id = 1,
-                            CreatedAt = new DateTime(2025, 12, 22, 17, 30, 33, 569, DateTimeKind.Utc).AddTicks(2460),
-                            PasswordHash = "$2a$11$5y1aU26z7LPJ/K5i6uKfFOBSnI45yWyjaetu954wSosOyacsSkFXm",
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440000"),
+                            CreatedAt = new DateTime(2025, 12, 22, 17, 45, 49, 500, DateTimeKind.Utc).AddTicks(850),
+                            PasswordHash = "$2a$11$BMswPTVK8f4rWSdtZR9CruPL4Xtt25Aakjv2pYrRRTq1PT8xmazYe",
                             Role = "Supervisor",
-                            UpdatedAt = new DateTime(2025, 12, 22, 17, 30, 33, 569, DateTimeKind.Utc).AddTicks(2470),
+                            UpdatedAt = new DateTime(2025, 12, 22, 17, 45, 49, 500, DateTimeKind.Utc).AddTicks(860),
                             Username = "supervisor"
                         });
                 });

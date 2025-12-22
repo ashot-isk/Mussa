@@ -4,7 +4,7 @@ namespace MussaApi.Models;
 
 public class User
 {
-    public int Id { get; set; }
+    public Guid Id { get; set; }
 
     [Required]
     [StringLength(50)]

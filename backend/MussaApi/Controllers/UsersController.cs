@@ -42,7 +42,7 @@ public class UsersController : ControllerBase
     // GET: api/users/5
     [HttpGet("{id}")]
     [Authorize(Roles = "Supervisor")]
-    public async Task<ActionResult<User>> GetUser(int id)
+    public async Task<ActionResult<User>> GetUser(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
 
@@ -73,6 +73,7 @@ public class UsersController : ControllerBase
 
         var user = new User
         {
+            Id = Guid.NewGuid(),
             Username = request.Username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             Role = request.Role ?? "User"
@@ -94,7 +95,7 @@ public class UsersController : ControllerBase
     // PUT: api/users/5
     [HttpPut("{id}")]
     [Authorize(Roles = "Supervisor")]
-    public async Task<IActionResult> PutUser(int id, UpdateUserRequest request)
+    public async Task<IActionResult> PutUser(Guid id, UpdateUserRequest request)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
@@ -134,7 +135,7 @@ public class UsersController : ControllerBase
     // DELETE: api/users/5
     [HttpDelete("{id}")]
     [Authorize(Roles = "Supervisor")]
-    public async Task<IActionResult> DeleteUser(int id)
+    public async Task<IActionResult> DeleteUser(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null)
@@ -174,7 +175,7 @@ public class UsersController : ControllerBase
         });
     }
 
-    private bool UserExists(int id)
+    private bool UserExists(Guid id)
     {
         return _context.Users.Any(e => e.Id == id);
     }

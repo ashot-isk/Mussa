@@ -31,7 +31,7 @@ public class ProductsController : ControllerBase
 
     // GET: api/products/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<Product>> GetProduct(int id)
+    public async Task<ActionResult<Product>> GetProduct(Guid id)
     {
         var product = await _context.Products.FindAsync(id);
 
@@ -47,6 +47,7 @@ public class ProductsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Product>> PostProduct(Product product)
     {
+        product.Id = Guid.NewGuid();
         _context.Products.Add(product);
         await _context.SaveChangesAsync();
 
@@ -55,7 +56,7 @@ public class ProductsController : ControllerBase
 
     // PUT: api/products/5
     [HttpPut("{id}")]
-    public async Task<IActionResult> PutProduct(int id, Product product)
+    public async Task<IActionResult> PutProduct(Guid id, Product product)
     {
         if (id != product.Id)
         {
@@ -85,7 +86,7 @@ public class ProductsController : ControllerBase
 
     // DELETE: api/products/5
     [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteProduct(int id)
+    public async Task<IActionResult> DeleteProduct(Guid id)
     {
         var product = await _context.Products.FindAsync(id);
         if (product == null)
@@ -101,7 +102,7 @@ public class ProductsController : ControllerBase
 
     // POST: api/products/{id}/upload-image
     [HttpPost("{id}/upload-image")]
-    public async Task<IActionResult> UploadProductImage(int id, IFormFile file)
+    public async Task<IActionResult> UploadProductImage(Guid id, IFormFile file)
     {
         var product = await _context.Products.FindAsync(id);
         if (product == null)
@@ -136,7 +137,7 @@ public class ProductsController : ControllerBase
         return Ok(new { imageUrl, productId = id });
     }
 
-    private bool ProductExists(int id)
+    private bool ProductExists(Guid id)
     {
         return _context.Products.Any(e => e.Id == id);
     }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Models;
+using BCrypt.Net;
 
 namespace MussaApi.Data;
 
@@ -40,5 +41,18 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("NOW()");
         });
+
+        // Seed data
+        modelBuilder.Entity<User>().HasData(
+            new User
+            {
+                Id = Guid.Parse("550e8400-e29b-41d4-a716-446655440000"),
+                Username = "supervisor",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("supervisor"),
+                Role = "Supervisor",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        );
     }
 }

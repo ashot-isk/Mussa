@@ -24,11 +24,9 @@ namespace MussaApi.Migrations
 
             modelBuilder.Entity("MussaApi.Models.Product", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -65,6 +63,55 @@ namespace MussaApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Products");
+                });
+
+            modelBuilder.Entity("MussaApi.Models.User", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasDefaultValue("User");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("550e8400-e29b-41d4-a716-446655440000"),
+                            CreatedAt = new DateTime(2025, 12, 22, 17, 45, 49, 500, DateTimeKind.Utc).AddTicks(850),
+                            PasswordHash = "$2a$11$BMswPTVK8f4rWSdtZR9CruPL4Xtt25Aakjv2pYrRRTq1PT8xmazYe",
+                            Role = "Supervisor",
+                            UpdatedAt = new DateTime(2025, 12, 22, 17, 45, 49, 500, DateTimeKind.Utc).AddTicks(860),
+                            Username = "supervisor"
+                        });
                 });
 #pragma warning restore 612, 618
         }
