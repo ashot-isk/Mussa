@@ -1,10 +1,12 @@
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { ui, Lang } from "../i18n/config";
+import { ui, Lang, defaultLang } from "../i18n/config";
 import ProductCard from "../components/ProductCard";
 
 export default function Home({ params }: { params: { lang: Lang } }) {
-  const t = ui[params.lang];
+  const lang: Lang =
+    params?.lang && ui[params.lang] ? params.lang : defaultLang;
+  const t = ui[lang];
 
   return (
     <>

@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Models;
-using BCrypt.Net;
 
 namespace MussaApi.Data;
 

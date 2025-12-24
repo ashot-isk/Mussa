@@ -32,6 +32,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const [stock, setStock] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -46,9 +48,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch('http://localhost:5074/api/products', {
+      const response = await fetch("http://localhost:5074/api/products", {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -77,35 +79,76 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
       description: description.trim(),
       price: parseFloat(price),
       stock: parseInt(stock),
-      imageUrl: ""
+      imageUrl: "",
     };
 
     try {
       const url = editingId
         ? `http://localhost:5074/api/products/${editingId}`
-        : 'http://localhost:5074/api/products';
+        : "http://localhost:5074/api/products";
 
-      const method = editingId ? 'PUT' : 'POST';
+      const method = editingId ? "PUT" : "POST";
 
       const response = await fetch(url, {
         method,
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(editingId ? { ...productData, id: editingId } : productData),
+        body: JSON.stringify(
+          editingId ? { ...productData, id: editingId } : productData
+        ),
       });
 
       if (response.ok) {
+        const createdProduct = await response.json();
+        const productId = editingId || createdProduct.id;
+
+        // Upload image if selected
+        if (imageFile && productId) {
+          await handleImageUpload(productId);
+        }
+
         await fetchProducts();
         resetForm();
       } else {
-        setError(editingId ? "Failed to update product" : "Failed to create product");
+        setError(
+          editingId ? "Failed to update product" : "Failed to create product"
+        );
       }
     } catch (err) {
       setError("Network error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleImageUpload = async (productId: string) => {
+    if (!imageFile) return;
+
+    setUploading(true);
+    const formData = new FormData();
+    formData.append("file", imageFile);
+
+    try {
+      const response = await fetch(
+        `http://localhost:5074/api/products/${productId}/upload-image`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        setError("Failed to upload image");
+      }
+    } catch (err) {
+      setError("Image upload failed");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -122,9 +165,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
     try {
       const response = await fetch(`http://localhost:5074/api/products/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
 
@@ -144,6 +187,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     setDescription("");
     setPrice("");
     setStock("");
+    setImageFile(null);
   };
 
   if (isLoading || loading) {
@@ -171,7 +215,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
               >
                 ← Back to Dashboard
               </button>
-              <h1 className="text-2xl font-serif text-gray-900">Products Management</h1>
+              <h1 className="text-2xl font-serif text-gray-900">
+                Products Management
+              </h1>
             </div>
           </div>
         </div>
@@ -202,8 +248,12 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                             />
                           )}
                           <div>
-                            <h4 className="text-sm font-medium text-gray-900">{product.name}</h4>
-                            <p className="text-sm text-gray-500">${product.price} • Stock: {product.stock}</p>
+                            <h4 className="text-sm font-medium text-gray-900">
+                              {product.name}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              ${product.price} • Stock: {product.stock}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -236,13 +286,15 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <div className="px-4 py-5 sm:px-6">
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  {editingId ? 'Edit Product' : 'Add New Product'}
+                  {editingId ? "Edit Product" : "Add New Product"}
                 </h3>
               </div>
               <div className="px-4 py-5 sm:p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Name</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Name
+                    </label>
                     <input
                       type="text"
                       value={name}
@@ -254,7 +306,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Description</label>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Description
+                    </label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
@@ -266,7 +320,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Price</label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Price
+                      </label>
                       <input
                         type="number"
                         step="0.01"
@@ -279,7 +335,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">Stock</label>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Stock
+                      </label>
                       <input
                         type="number"
                         value={stock}
@@ -291,11 +349,24 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                     </div>
                   </div>
 
-                  {error && (
-                    <div className="text-red-600 text-sm">
-                      {error}
-                    </div>
-                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                      Product Image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                      className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+                    />
+                    {imageFile && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Selected: {imageFile.name}
+                      </p>
+                    )}
+                  </div>
+
+                  {error && <div className="text-red-600 text-sm">{error}</div>}
 
                   <div className="flex space-x-3">
                     <button
@@ -303,7 +374,11 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                       disabled={submitting}
                       className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                     >
-                      {submitting ? 'Saving...' : (editingId ? 'Update Product' : 'Add Product')}
+                      {submitting
+                        ? "Saving..."
+                        : editingId
+                        ? "Update Product"
+                        : "Add Product"}
                     </button>
 
                     {editingId && (
@@ -323,29 +398,5 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
         </div>
       </main>
     </div>
-  );
-}
-              placeholder="48000"
-            />
-          </div>
-          <button
-            onClick={addProduct}
-            className="px-4 py-2 bg-accent text-white rounded-full text-xs uppercase tracking-[0.12em]"
-          >
-            Add product
-          </button>
-        </div>
-        <div className="space-y-2">
-          {products.map(p => (
-            <div key={p.id} className="flex justify-between border-b border-black/5 pb-1">
-              <span>{p.name}</span>
-              <span>{p.price.toLocaleString("ru-RU")} ֏</span>
-            </div>
-          ))}
-          {products.length === 0 && <p>No products yet (local state only).</p>}
-        </div>
-      </main>
-      <Footer t={t} />
-    </>
   );
 }

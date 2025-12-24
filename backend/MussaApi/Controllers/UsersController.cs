@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Data;
 using MussaApi.Models;
-using BCrypt.Net;
 using System.Security.Claims;
 
 namespace MussaApi.Controllers;
@@ -11,21 +10,14 @@ namespace MussaApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
-public class UsersController : ControllerBase
+public class UsersController(ApplicationDbContext context) : ControllerBase
 {
-    private readonly ApplicationDbContext _context;
-
-    public UsersController(ApplicationDbContext context)
-    {
-        _context = context;
-    }
-
     // GET: api/users
     [HttpGet]
     [Authorize(Roles = "Supervisor")]
     public async Task<ActionResult<IEnumerable<User>>> GetUsers()
     {
-        var users = await _context.Users
+        var users = await context.Users
             .Select(u => new
             {
                 u.Id,
@@ -44,7 +36,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Supervisor")]
     public async Task<ActionResult<User>> GetUser(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await context.Users.FindAsync(id);
 
         if (user == null)
         {
@@ -66,7 +58,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Supervisor")]
     public async Task<ActionResult<User>> PostUser(CreateUserRequest request)
     {
-        if (await _context.Users.AnyAsync(u => u.Username == request.Username))
+        if (await context.Users.AnyAsync(u => u.Username == request.Username))
         {
             return BadRequest("Username already exists.");
         }
@@ -79,8 +71,8 @@ public class UsersController : ControllerBase
             Role = request.Role ?? "User"
         };
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetUser), new { id = user.Id }, new
         {
@@ -97,7 +89,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Supervisor")]
     public async Task<IActionResult> PutUser(Guid id, UpdateUserRequest request)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await context.Users.FindAsync(id);
         if (user == null)
         {
             return NotFound();
@@ -115,7 +107,7 @@ public class UsersController : ControllerBase
 
         try
         {
-            await _context.SaveChangesAsync();
+            await context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -137,14 +129,14 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Supervisor")]
     public async Task<IActionResult> DeleteUser(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await context.Users.FindAsync(id);
         if (user == null)
         {
             return NotFound();
         }
 
-        _context.Users.Remove(user);
-        await _context.SaveChangesAsync();
+        context.Users.Remove(user);
+        await context.SaveChangesAsync();
 
         return NoContent();
     }
@@ -159,7 +151,7 @@ public class UsersController : ControllerBase
             return Unauthorized();
         }
 
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+        var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
         if (user == null)
         {
             return NotFound();
@@ -177,7 +169,7 @@ public class UsersController : ControllerBase
 
     private bool UserExists(Guid id)
     {
-        return _context.Users.Any(e => e.Id == id);
+        return context.Users.Any(e => e.Id == id);
     }
 }
 

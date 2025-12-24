@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../../providers/AuthProvider";
-import { ui, Lang } from "../../i18n/config";
+import { useAuth } from "../../../providers/AuthProvider";
+import { ui, Lang } from "../../../i18n/config";
 
 export default function AdminLogin({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];

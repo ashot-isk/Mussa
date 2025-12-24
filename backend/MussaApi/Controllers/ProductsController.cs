@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Data;
 using MussaApi.Models;
-using System.IO;
-using System.Threading.Tasks;
 
 namespace MussaApi.Controllers;
 
@@ -75,10 +73,8 @@ public class ProductsController : ControllerBase
             {
                 return NotFound();
             }
-            else
-            {
-                throw;
-            }
+
+            throw;
         }
 
         return NoContent();
@@ -102,7 +98,7 @@ public class ProductsController : ControllerBase
 
     // POST: api/products/{id}/upload-image
     [HttpPost("{id}/upload-image")]
-    public async Task<IActionResult> UploadProductImage(Guid id, IFormFile file)
+    public async Task<IActionResult> UploadProductImage(Guid id, IFormFile? file)
     {
         var product = await _context.Products.FindAsync(id);
         if (product == null)
@@ -121,10 +117,10 @@ public class ProductsController : ControllerBase
             Directory.CreateDirectory(uploadsFolder);
         }
 
-        var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+        var uniqueFileName = Guid.NewGuid() + "_" + file.FileName;
         var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-        using (var stream = new FileStream(filePath, FileMode.Create))
+        await using (var stream = new FileStream(filePath, FileMode.Create))
         {
             await file.CopyToAsync(stream);
         }
