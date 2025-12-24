@@ -20,19 +20,47 @@ public class OrdersController : ControllerBase
     // GET: api/orders
     [HttpGet]
     [Authorize(Roles = "Supervisor")]
-    public async Task<ActionResult<IEnumerable<Order>>> GetOrders()
+    public async Task<ActionResult<IEnumerable<object>>> GetOrders()
     {
-        return await _context.Orders
+        var orders = await _context.Orders
             .Include(o => o.Customer)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Product)
             .OrderByDescending(o => o.CreatedAt)
             .ToListAsync();
+
+        // Return simplified orders without circular references
+        return Ok(orders.Select(o => new
+        {
+            o.Id,
+            o.CustomerId,
+            CustomerName = o.Customer.FullName,
+            CustomerEmail = o.Customer.Email,
+            CustomerPhone = o.Customer.Phone,
+            o.TotalAmount,
+            o.Status,
+            o.DeliveryAddress,
+            o.DeliveryDate,
+            o.DeliveryTime,
+            o.Notes,
+            o.PaymentMethod,
+            o.IsPaid,
+            o.CreatedAt,
+            OrderItems = o.OrderItems.Select(oi => new
+            {
+                oi.Id,
+                oi.ProductId,
+                ProductName = oi.Product.Name,
+                oi.Quantity,
+                oi.UnitPrice,
+                oi.Subtotal
+            }).ToList()
+        }));
     }
 
     // GET: api/orders/5
     [HttpGet("{id}")]
-    public async Task<ActionResult<Order>> GetOrder(Guid id)
+    public async Task<ActionResult<object>> GetOrder(Guid id)
     {
         var order = await _context.Orders
             .Include(o => o.Customer)
@@ -45,7 +73,33 @@ public class OrdersController : ControllerBase
             return NotFound();
         }
 
-        return order;
+        // Return simplified order without circular references
+        return Ok(new
+        {
+            order.Id,
+            order.CustomerId,
+            CustomerName = order.Customer.FullName,
+            CustomerEmail = order.Customer.Email,
+            CustomerPhone = order.Customer.Phone,
+            order.TotalAmount,
+            order.Status,
+            order.DeliveryAddress,
+            order.DeliveryDate,
+            order.DeliveryTime,
+            order.Notes,
+            order.PaymentMethod,
+            order.IsPaid,
+            order.CreatedAt,
+            OrderItems = order.OrderItems.Select(oi => new
+            {
+                oi.Id,
+                oi.ProductId,
+                ProductName = oi.Product.Name,
+                oi.Quantity,
+                oi.UnitPrice,
+                oi.Subtotal
+            }).ToList()
+        });
     }
 
     // POST: api/orders
@@ -123,15 +177,56 @@ public class OrdersController : ControllerBase
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetOrder), new { id = order.Id }, order);
+        // Return simplified order object without circular references
+        var createdOrder = await _context.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+            .FirstOrDefaultAsync(o => o.Id == order.Id);
+
+        if (createdOrder == null)
+        {
+            return NotFound();
+        }
+
+        return CreatedAtAction(nameof(GetOrder), new { id = createdOrder.Id }, new
+        {
+            createdOrder.Id,
+            createdOrder.CustomerId,
+            CustomerName = createdOrder.Customer.FullName,
+            CustomerEmail = createdOrder.Customer.Email,
+            createdOrder.TotalAmount,
+            createdOrder.Status,
+            createdOrder.DeliveryAddress,
+            createdOrder.DeliveryDate,
+            createdOrder.DeliveryTime,
+            createdOrder.Notes,
+            createdOrder.PaymentMethod,
+            createdOrder.IsPaid,
+            createdOrder.CreatedAt,
+            OrderItems = createdOrder.OrderItems.Select(oi => new
+            {
+                oi.Id,
+                oi.ProductId,
+                ProductName = oi.Product.Name,
+                oi.Quantity,
+                oi.UnitPrice,
+                oi.Subtotal
+            }).ToList()
+        });
     }
 
     // PUT: api/orders/5/status
     [HttpPut("{id}/status")]
     [Authorize(Roles = "Supervisor")]
-    public async Task<IActionResult> UpdateOrderStatus(Guid id, UpdateOrderStatusRequest request)
+    public async Task<ActionResult<object>> UpdateOrderStatus(Guid id, UpdateOrderStatusRequest request)
     {
-        var order = await _context.Orders.FindAsync(id);
+        var order = await _context.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+            .FirstOrDefaultAsync(o => o.Id == id);
+            
         if (order == null)
         {
             return NotFound();
@@ -142,26 +237,81 @@ public class OrdersController : ControllerBase
 
         await _context.SaveChangesAsync();
 
-        return NoContent();
+        return Ok(new
+        {
+            order.Id,
+            order.CustomerId,
+            CustomerName = order.Customer.FullName,
+            CustomerEmail = order.Customer.Email,
+            CustomerPhone = order.Customer.Phone,
+            order.TotalAmount,
+            order.Status,
+            order.DeliveryAddress,
+            order.DeliveryDate,
+            order.DeliveryTime,
+            order.Notes,
+            order.PaymentMethod,
+            order.IsPaid,
+            order.CreatedAt,
+            OrderItems = order.OrderItems.Select(oi => new
+            {
+                oi.Id,
+                oi.ProductId,
+                ProductName = oi.Product.Name,
+                oi.Quantity,
+                oi.UnitPrice,
+                oi.Subtotal
+            }).ToList()
+        });
     }
 
     // PUT: api/orders/5/payment
     [HttpPut("{id}/payment")]
     [Authorize(Roles = "Supervisor")]
-    public async Task<IActionResult> UpdatePaymentStatus(Guid id, bool isPaid)
+    public async Task<ActionResult<object>> UpdatePaymentStatus(Guid id, UpdatePaymentStatusRequest request)
     {
-        var order = await _context.Orders.FindAsync(id);
+        var order = await _context.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.OrderItems)
+                .ThenInclude(oi => oi.Product)
+            .FirstOrDefaultAsync(o => o.Id == id);
+            
         if (order == null)
         {
             return NotFound();
         }
 
-        order.IsPaid = isPaid;
+        order.IsPaid = request.IsPaid;
         order.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
 
-        return NoContent();
+        return Ok(new
+        {
+            order.Id,
+            order.CustomerId,
+            CustomerName = order.Customer.FullName,
+            CustomerEmail = order.Customer.Email,
+            CustomerPhone = order.Customer.Phone,
+            order.TotalAmount,
+            order.Status,
+            order.DeliveryAddress,
+            order.DeliveryDate,
+            order.DeliveryTime,
+            order.Notes,
+            order.PaymentMethod,
+            order.IsPaid,
+            order.CreatedAt,
+            OrderItems = order.OrderItems.Select(oi => new
+            {
+                oi.Id,
+                oi.ProductId,
+                ProductName = oi.Product.Name,
+                oi.Quantity,
+                oi.UnitPrice,
+                oi.Subtotal
+            }).ToList()
+        });
     }
 
     // DELETE: api/orders/5
@@ -225,4 +375,9 @@ public class OrderItemRequest
 public class UpdateOrderStatusRequest
 {
     public string Status { get; set; } = string.Empty;
+}
+
+public class UpdatePaymentStatusRequest
+{
+    public bool IsPaid { get; set; }
 }
