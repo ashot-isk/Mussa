@@ -10,9 +10,17 @@ type Props = {
   price: number;
   image: string;
   lang?: Lang;
+  categoryName?: string;
 };
 
-export default function ProductCard({ id, name, price, image, lang }: Props) {
+export default function ProductCard({
+  id,
+  name,
+  price,
+  image,
+  lang,
+  categoryName,
+}: Props) {
   const { addItem } = useCart();
   const langUsed = lang ?? defaultLang;
   const t = ui[langUsed];
@@ -32,6 +40,11 @@ export default function ProductCard({ id, name, price, image, lang }: Props) {
           />
         </div>
         <div className="p-6">
+          {categoryName && (
+            <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">
+              {categoryName}
+            </div>
+          )}
           <div className="font-serif text-xl leading-tight mb-2">{name}</div>
           <div className="text-lg font-medium text-dark">
             {price.toLocaleString("ru-RU")} ֏

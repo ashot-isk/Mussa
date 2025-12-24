@@ -12,8 +12,14 @@ type Product = {
   price: number;
   imageUrl: string;
   stock: number;
+  categoryId: number | null;
   createdAt: string;
   updatedAt: string;
+};
+
+type Category = {
+  id: number;
+  name: string;
 };
 
 export default function AdminProducts({ params }: { params: { lang: Lang } }) {
@@ -22,6 +28,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -30,6 +37,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [categoryId, setCategoryId] = useState<string>("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -43,8 +51,21 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
     if (user) {
       fetchProducts();
+      fetchCategories();
     }
   }, [user, isLoading, router, params.lang]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch("http://localhost:5074/api/categories");
+      if (response.ok) {
+        const data = await response.json();
+        setCategories(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch categories", err);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -79,6 +100,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
       description: description.trim(),
       price: parseFloat(price),
       stock: parseInt(stock),
+      categoryId: categoryId ? parseInt(categoryId) : null,
       imageUrl: "",
     };
 
@@ -158,6 +180,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     setDescription(product.description);
     setPrice(product.price.toString());
     setStock(product.stock.toString());
+    setCategoryId(product.categoryId ? product.categoryId.toString() : "");
   };
 
   const handleDelete = async (id: string) => {
@@ -187,6 +210,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     setDescription("");
     setPrice("");
     setStock("");
+    setCategoryId("");
     setImageFile(null);
   };
 
@@ -351,12 +375,32 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
+                      Category
+                    </label>
+                    <select
+                      value={categoryId}
+                      onChange={(e) => setCategoryId(e.target.value)}
+                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    >
+                      <option value="">No Category</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">
                       Product Image
                     </label>
                     <input
                       type="file"
                       accept="image/*"
-                      onChange={(e) => setImageFile(e.target.files?.[0] || null)}
+                      onChange={(e) =>
+                        setImageFile(e.target.files?.[0] || null)
+                      }
                       className="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
                     />
                     {imageFile && (
@@ -371,10 +415,10 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                   <div className="flex space-x-3">
                     <button
                       type="submit"
-                      disabled={submitting}
+                      disabled={submitting || uploading}
                       className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                     >
-                      {submitting
+                      {submitting || uploading
                         ? "Saving..."
                         : editingId
                         ? "Update Product"

@@ -8,7 +8,6 @@ namespace MussaApi.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
 public class ProductsController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -22,6 +21,7 @@ public class ProductsController : ControllerBase
 
     // GET: api/products
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
     {
         return await _context.Products.ToListAsync();
@@ -29,6 +29,7 @@ public class ProductsController : ControllerBase
 
     // GET: api/products/5
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<Product>> GetProduct(Guid id)
     {
         var product = await _context.Products.FindAsync(id);
@@ -43,6 +44,7 @@ public class ProductsController : ControllerBase
 
     // POST: api/products
     [HttpPost]
+    [Authorize]
     public async Task<ActionResult<Product>> PostProduct(Product product)
     {
         product.Id = Guid.NewGuid();
@@ -54,6 +56,7 @@ public class ProductsController : ControllerBase
 
     // PUT: api/products/5
     [HttpPut("{id}")]
+    [Authorize]
     public async Task<IActionResult> PutProduct(Guid id, Product product)
     {
         if (id != product.Id)
@@ -82,6 +85,7 @@ public class ProductsController : ControllerBase
 
     // DELETE: api/products/5
     [HttpDelete("{id}")]
+    [Authorize]
     public async Task<IActionResult> DeleteProduct(Guid id)
     {
         var product = await _context.Products.FindAsync(id);
@@ -98,6 +102,7 @@ public class ProductsController : ControllerBase
 
     // POST: api/products/{id}/upload-image
     [HttpPost("{id}/upload-image")]
+    [Authorize]
     public async Task<IActionResult> UploadProductImage(Guid id, IFormFile? file)
     {
         var product = await _context.Products.FindAsync(id);

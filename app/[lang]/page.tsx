@@ -1,12 +1,42 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { ui, Lang, defaultLang } from "../i18n/config";
 import ProductCard from "../components/ProductCard";
 
+type Product = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  imageUrl: string;
+  stock: number;
+};
+
 export default function Home({ params }: { params: { lang: Lang } }) {
   const lang: Lang =
     params?.lang && ui[params.lang] ? params.lang : defaultLang;
   const t = ui[lang];
+  const [products, setProducts] = useState<Product[]>([]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch("http://localhost:5074/api/products");
+      if (response.ok) {
+        const data = await response.json();
+        // Take only first 3 products for homepage
+        setProducts(data.slice(0, 3));
+      }
+    } catch (err) {
+      console.error("Failed to fetch products:", err);
+    }
+  };
 
   return (
     <>
@@ -44,24 +74,46 @@ export default function Home({ params }: { params: { lang: Lang } }) {
             <h2 className="font-serif text-2xl">Trending now</h2>
           </div>
           <div className="grid md:grid-cols-3 gap-5">
-            <ProductCard
-              id="peony"
-              name="Pastel Peony Dream"
-              price={48000}
-              image="https://images.unsplash.com/photo-1509043759401-136742328bb3?auto=format&fit=crop&w=900&q=80"
-            />
-            <ProductCard
-              id="white-roses"
-              name="White Garden Roses"
-              price={39000}
-              image="https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=900&q=80"
-            />
-            <ProductCard
-              id="box"
-              name="MUSSA Signature Box"
-              price={55000}
-              image="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80"
-            />
+            {products.length > 0 ? (
+              products.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  price={product.price}
+                  image={
+                    product.imageUrl
+                      ? `http://localhost:5074${product.imageUrl}`
+                      : "https://images.unsplash.com/photo-1509043759401-136742328bb3?auto=format&fit=crop&w=900&q=80"
+                  }
+                  lang={lang}
+                />
+              ))
+            ) : (
+              <>
+                <ProductCard
+                  id="peony"
+                  name="Pastel Peony Dream"
+                  price={48000}
+                  image="https://images.unsplash.com/photo-1509043759401-136742328bb3?auto=format&fit=crop&w=900&q=80"
+                  lang={lang}
+                />
+                <ProductCard
+                  id="white-roses"
+                  name="White Garden Roses"
+                  price={39000}
+                  image="https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=900&q=80"
+                  lang={lang}
+                />
+                <ProductCard
+                  id="box"
+                  name="MUSSA Signature Box"
+                  price={55000}
+                  image="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80"
+                  lang={lang}
+                />
+              </>
+            )}
           </div>
         </section>
       </main>
