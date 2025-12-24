@@ -22,24 +22,60 @@ public class ProductsController : ControllerBase
     // GET: api/products
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+    public async Task<ActionResult<IEnumerable<object>>> GetProducts()
     {
-        return await _context.Products.ToListAsync();
+        var products = await _context.Products
+            .Include(p => p.Category)
+            .ToListAsync();
+        
+        // Return products with simplified category info to avoid circular references
+        return Ok(products.Select(p => new
+        {
+            p.Id,
+            p.Name,
+            p.Description,
+            p.Price,
+            p.ImageUrl,
+            p.Stock,
+            p.CategoryId,
+            p.IsFeatured,
+            p.IsAvailable,
+            p.CreatedAt,
+            p.UpdatedAt,
+            CategoryName = p.Category != null ? p.Category.Name : null
+        }));
     }
 
     // GET: api/products/5
     [HttpGet("{id}")]
     [AllowAnonymous]
-    public async Task<ActionResult<Product>> GetProduct(Guid id)
+    public async Task<ActionResult<object>> GetProduct(Guid id)
     {
-        var product = await _context.Products.FindAsync(id);
+        var product = await _context.Products
+            .Include(p => p.Category)
+            .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
         {
             return NotFound();
         }
 
-        return product;
+        // Return product with simplified category info
+        return Ok(new
+        {
+            product.Id,
+            product.Name,
+            product.Description,
+            product.Price,
+            product.ImageUrl,
+            product.Stock,
+            product.CategoryId,
+            product.IsFeatured,
+            product.IsAvailable,
+            product.CreatedAt,
+            product.UpdatedAt,
+            CategoryName = product.Category?.Name
+        });
     }
 
     // POST: api/products

@@ -19,11 +19,18 @@ public class CategoriesController : ControllerBase
 
     // GET: api/categories
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<Category>>> GetCategories()
+    public async Task<ActionResult<IEnumerable<object>>> GetCategories()
     {
-        return await _context.Categories
-            .Include(c => c.Products)
-            .ToListAsync();
+        var categories = await _context.Categories.ToListAsync();
+        
+        // Return simplified category objects without circular references
+        return Ok(categories.Select(c => new
+        {
+            c.Id,
+            c.Name,
+            c.Description,
+            c.ImageUrl
+        }));
     }
 
     // GET: api/categories/5

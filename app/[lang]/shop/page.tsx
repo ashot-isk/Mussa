@@ -13,11 +13,12 @@ type Product = {
   price: number;
   imageUrl: string;
   stock: number;
-  categoryId: number | null;
+  categoryId: string | null;
+  categoryName?: string;
 };
 
 type Category = {
-  id: number;
+  id: string;
   name: string;
 };
 
@@ -25,7 +26,7 @@ export default function ShopPage({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

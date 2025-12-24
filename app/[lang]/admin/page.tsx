@@ -161,28 +161,69 @@ export default function AdminDashboard({ params }: { params: { lang: Lang } }) {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                        d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
                       />
                     </svg>
                   </div>
                   <div className="ml-5 w-0 flex-1">
                     <dl>
                       <dt className="text-sm font-medium text-gray-500 truncate">
-                        Analytics
+                        Orders Management
                       </dt>
                       <dd className="text-lg font-medium text-gray-900">
-                        View statistics and reports
+                        View and manage orders
                       </dd>
                     </dl>
                   </div>
                 </div>
                 <div className="mt-5">
-                  <button
-                    disabled
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-400 bg-gray-100 cursor-not-allowed"
+                  <Link
+                    href={`/${params.lang}/admin/orders`}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200"
                   >
-                    Coming Soon
-                  </button>
+                    Manage Orders
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Categories Management */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-8 w-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Categories Management
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">
+                        Manage product categories
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <Link
+                    href={`/${params.lang}/admin/categories`}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200"
+                  >
+                    Manage Categories
+                  </Link>
                 </div>
               </div>
             </div>

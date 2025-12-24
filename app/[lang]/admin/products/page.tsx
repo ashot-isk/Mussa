@@ -92,54 +92,110 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     e.preventDefault();
     if (!name.trim() || !price || !stock) return;
 
+    if (!token) {
+      setError("Not authenticated. Please login again.");
+      router.push(`/${params.lang}/admin/login`);
+      return;
+    }
+
     setSubmitting(true);
     setError("");
 
-    const productData = {
-      name: name.trim(),
-      description: description.trim(),
-      price: parseFloat(price),
-      stock: parseInt(stock),
-      categoryId: categoryId ? parseInt(categoryId) : null,
-      imageUrl: "",
-    };
-
     try {
-      const url = editingId
-        ? `http://localhost:5074/api/products/${editingId}`
-        : "http://localhost:5074/api/products";
+      if (editingId) {
+        // For updates, fetch existing product first
+        const existingResponse = await fetch(
+          `http://localhost:5074/api/products/${editingId}`
+        );
 
-      const method = editingId ? "PUT" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(
-          editingId ? { ...productData, id: editingId } : productData
-        ),
-      });
-
-      if (response.ok) {
-        const createdProduct = await response.json();
-        const productId = editingId || createdProduct.id;
-
-        // Upload image if selected
-        if (imageFile && productId) {
-          await handleImageUpload(productId);
+        if (!existingResponse.ok) {
+          setError("Failed to fetch product data");
+          setSubmitting(false);
+          return;
         }
 
-        await fetchProducts();
-        resetForm();
-      } else {
-        setError(
-          editingId ? "Failed to update product" : "Failed to create product"
+        const existingProduct = await existingResponse.json();
+
+        // Update with new data while preserving all fields
+        const updatedProduct = {
+          ...existingProduct,
+          name: name.trim(),
+          description: description.trim(),
+          price: parseFloat(price),
+          stock: parseInt(stock),
+          categoryId: categoryId ? categoryId : null,
+          updatedAt: new Date().toISOString(),
+        };
+
+        const response = await fetch(
+          `http://localhost:5074/api/products/${editingId}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(updatedProduct),
+          }
         );
+
+        if (response.ok) {
+          // Upload image if selected
+          if (imageFile) {
+            await handleImageUpload(editingId);
+          }
+          await fetchProducts();
+          resetForm();
+        } else if (response.status === 401) {
+          setError("Authentication failed. Please login again.");
+          router.push(`/${params.lang}/admin/login`);
+        } else {
+          const errorText = await response.text();
+          setError(`Failed to update product: ${errorText}`);
+        }
+      } else {
+        // For new products
+        const productData = {
+          name: name.trim(),
+          description: description.trim(),
+          price: parseFloat(price),
+          stock: parseInt(stock),
+          categoryId: categoryId || null,
+          imageUrl: "",
+          isFeatured: false,
+          isAvailable: true,
+        };
+
+        const response = await fetch("http://localhost:5074/api/products", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(productData),
+        });
+
+        if (response.ok) {
+          const createdProduct = await response.json();
+
+          // Upload image if selected
+          if (imageFile && createdProduct.id) {
+            await handleImageUpload(createdProduct.id);
+          }
+
+          await fetchProducts();
+          resetForm();
+        } else if (response.status === 401) {
+          setError("Authentication failed. Please login again.");
+          router.push(`/${params.lang}/admin/login`);
+        } else {
+          const errorText = await response.text();
+          setError(`Failed to create product: ${errorText}`);
+        }
       }
     } catch (err) {
       setError("Network error");
+      console.error("Error submitting product:", err);
     } finally {
       setSubmitting(false);
     }

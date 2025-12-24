@@ -30,8 +30,11 @@ export default function Home({ params }: { params: { lang: Lang } }) {
       const response = await fetch("http://localhost:5074/api/products");
       if (response.ok) {
         const data = await response.json();
+        console.log("Fetched products:", data);
         // Take only first 3 products for homepage
         setProducts(data.slice(0, 3));
+      } else {
+        console.error("Failed to fetch products, status:", response.status);
       }
     } catch (err) {
       console.error("Failed to fetch products:", err);
