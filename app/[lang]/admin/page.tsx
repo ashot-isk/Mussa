@@ -40,7 +40,12 @@ export default function AdminDashboard({ params }: { params: { lang: Lang } }) {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
+            <div className="flex items-center space-x-4">
+              <img
+                src="/mussa logo files/musa logo black transparent.png"
+                alt="Mussa Logo"
+                className="h-32 w-auto"
+              />
               <h1 className="text-2xl font-serif text-gray-900">Admin Panel</h1>
             </div>
             <div className="flex items-center space-x-4">

@@ -201,13 +201,15 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     City *
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
                     className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-accent focus:border-transparent"
                     required
-                  />
+                  >
+                    <option value="Yerevan">Yerevan</option>
+                    <option value="Armavir">Armavir</option>
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

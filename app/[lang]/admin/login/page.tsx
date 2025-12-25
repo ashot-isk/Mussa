@@ -42,6 +42,13 @@ export default function AdminLogin({ params }: { params: { lang: Lang } }) {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
+          <div className="flex justify-center mb-6">
+            <img
+              src="/mussa logo files/musa logo black transparent.png"
+              alt="Mussa Logo"
+              className="h-32 w-auto"
+            />
+          </div>
           <h2 className="mt-6 text-center text-3xl font-serif text-gray-900">
             Admin Login
           </h2>
