@@ -7,6 +7,7 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 
 type User = {
   id: string;
@@ -20,6 +21,7 @@ type AuthContextType = {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  checkAuth: () => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

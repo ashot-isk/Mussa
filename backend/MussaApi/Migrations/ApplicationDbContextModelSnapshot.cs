@@ -59,38 +59,38 @@ namespace MussaApi.Migrations
                         new
                         {
                             Id = new Guid("11111111-1111-1111-1111-111111111111"),
-                            CreatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6830),
+                            CreatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5920),
                             Description = "Beautiful rose bouquets",
                             ImageUrl = "",
                             Name = "Roses",
-                            UpdatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6830)
+                            UpdatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5920)
                         },
                         new
                         {
                             Id = new Guid("22222222-2222-2222-2222-222222222222"),
-                            CreatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6840),
+                            CreatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5930),
                             Description = "Elegant peony arrangements",
                             ImageUrl = "",
                             Name = "Peonies",
-                            UpdatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6840)
+                            UpdatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5930)
                         },
                         new
                         {
                             Id = new Guid("33333333-3333-3333-3333-333333333333"),
-                            CreatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6840),
+                            CreatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5930),
                             Description = "Beautiful mixed flower arrangements",
                             ImageUrl = "",
                             Name = "Mixed Bouquets",
-                            UpdatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6840)
+                            UpdatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5930)
                         },
                         new
                         {
                             Id = new Guid("44444444-4444-4444-4444-444444444444"),
-                            CreatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6840),
+                            CreatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5940),
                             Description = "Premium flower boxes",
                             ImageUrl = "",
                             Name = "Gift Boxes",
-                            UpdatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6840)
+                            UpdatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5940)
                         });
                 });
 
@@ -136,6 +136,82 @@ namespace MussaApi.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Customers");
+                });
+
+            modelBuilder.Entity("MussaApi.Models.Flower", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Flowers");
+                });
+
+            modelBuilder.Entity("MussaApi.Models.Material", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("StockQuantity")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Materials");
                 });
 
             modelBuilder.Entity("MussaApi.Models.Order", b =>
@@ -278,6 +354,42 @@ namespace MussaApi.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("MussaApi.Models.ProductFlower", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("FlowerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ProductId", "FlowerId");
+
+                    b.HasIndex("FlowerId");
+
+                    b.ToTable("ProductFlowers");
+                });
+
+            modelBuilder.Entity("MussaApi.Models.ProductMaterial", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("MaterialId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.HasKey("ProductId", "MaterialId");
+
+                    b.HasIndex("MaterialId");
+
+                    b.ToTable("ProductMaterials");
+                });
+
             modelBuilder.Entity("MussaApi.Models.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -319,10 +431,10 @@ namespace MussaApi.Migrations
                         new
                         {
                             Id = new Guid("550e8400-e29b-41d4-a716-446655440000"),
-                            CreatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6190),
-                            PasswordHash = "$2a$11$EVlBse4jR6qUkinmHo3AXe67AJeVOePo5Zt9W/1HDy5Xg.1lm.gBW",
+                            CreatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5400),
+                            PasswordHash = "$2a$11$vUjrRKXAIxFPYMN1eqFTm.EgCXyYOuBp3eIB9SJ8yJ5fArj9kGTKu",
                             Role = "Supervisor",
-                            UpdatedAt = new DateTime(2025, 12, 24, 18, 33, 24, 578, DateTimeKind.Utc).AddTicks(6190),
+                            UpdatedAt = new DateTime(2025, 12, 25, 18, 42, 19, 267, DateTimeKind.Utc).AddTicks(5400),
                             Username = "supervisor"
                         });
                 });
@@ -366,6 +478,44 @@ namespace MussaApi.Migrations
                     b.Navigation("Category");
                 });
 
+            modelBuilder.Entity("MussaApi.Models.ProductFlower", b =>
+                {
+                    b.HasOne("MussaApi.Models.Flower", "Flower")
+                        .WithMany("ProductFlowers")
+                        .HasForeignKey("FlowerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MussaApi.Models.Product", "Product")
+                        .WithMany("ProductFlowers")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Flower");
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("MussaApi.Models.ProductMaterial", b =>
+                {
+                    b.HasOne("MussaApi.Models.Material", "Material")
+                        .WithMany("ProductMaterials")
+                        .HasForeignKey("MaterialId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MussaApi.Models.Product", "Product")
+                        .WithMany("ProductMaterials")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Material");
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("MussaApi.Models.Category", b =>
                 {
                     b.Navigation("Products");
@@ -376,6 +526,16 @@ namespace MussaApi.Migrations
                     b.Navigation("Orders");
                 });
 
+            modelBuilder.Entity("MussaApi.Models.Flower", b =>
+                {
+                    b.Navigation("ProductFlowers");
+                });
+
+            modelBuilder.Entity("MussaApi.Models.Material", b =>
+                {
+                    b.Navigation("ProductMaterials");
+                });
+
             modelBuilder.Entity("MussaApi.Models.Order", b =>
                 {
                     b.Navigation("OrderItems");
@@ -384,6 +544,10 @@ namespace MussaApi.Migrations
             modelBuilder.Entity("MussaApi.Models.Product", b =>
                 {
                     b.Navigation("OrderItems");
+
+                    b.Navigation("ProductFlowers");
+
+                    b.Navigation("ProductMaterials");
                 });
 #pragma warning restore 612, 618
         }

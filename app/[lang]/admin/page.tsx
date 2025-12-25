@@ -232,6 +232,88 @@ export default function AdminDashboard({ params }: { params: { lang: Lang } }) {
                 </div>
               </div>
             </div>
+
+            {/* Flowers Management */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-8 w-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Flowers Inventory
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">
+                        Manage flower stock
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <Link
+                    href={`/${params.lang}/admin/flowers`}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-pink-700 bg-pink-100 hover:bg-pink-200"
+                  >
+                    Manage Flowers
+                  </Link>
+                </div>
+              </div>
+            </div>
+
+            {/* Materials Management */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+              <div className="p-5">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <svg
+                      className="h-8 w-8 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"
+                      />
+                    </svg>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-500 truncate">
+                        Materials Inventory
+                      </dt>
+                      <dd className="text-lg font-medium text-gray-900">
+                        Manage materials stock
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+                <div className="mt-5">
+                  <Link
+                    href={`/${params.lang}/admin/materials`}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200"
+                  >
+                    Manage Materials
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </main>

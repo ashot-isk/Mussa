@@ -53,6 +53,10 @@ public class ProductsController : ControllerBase
     {
         var product = await _context.Products
             .Include(p => p.Category)
+            .Include(p => p.ProductFlowers)
+                .ThenInclude(pf => pf.Flower)
+            .Include(p => p.ProductMaterials)
+                .ThenInclude(pm => pm.Material)
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (product == null)
@@ -60,7 +64,7 @@ public class ProductsController : ControllerBase
             return NotFound();
         }
 
-        // Return product with simplified category info
+        // Return product with simplified category info and components
         return Ok(new
         {
             product.Id,
@@ -74,20 +78,108 @@ public class ProductsController : ControllerBase
             product.IsAvailable,
             product.CreatedAt,
             product.UpdatedAt,
-            CategoryName = product.Category?.Name
+            CategoryName = product.Category?.Name,
+            Flowers = product.ProductFlowers.Select(pf => new
+            {
+                pf.FlowerId,
+                FlowerName = pf.Flower.Name,
+                pf.Quantity,
+                UnitPrice = pf.Flower.UnitPrice
+            }),
+            Materials = product.ProductMaterials.Select(pm => new
+            {
+                pm.MaterialId,
+                MaterialName = pm.Material.Name,
+                pm.Quantity,
+                UnitPrice = pm.Material.UnitPrice
+            })
         });
     }
 
     // POST: api/products
     [HttpPost]
     [Authorize]
-    public async Task<ActionResult<Product>> PostProduct(Product product)
+    public async Task<ActionResult<object>> PostProduct(ProductCreateDto productDto)
     {
-        product.Id = Guid.NewGuid();
+        var product = new Product
+        {
+            Id = Guid.NewGuid(),
+            Name = productDto.Name,
+            Description = productDto.Description,
+            Price = productDto.Price,
+            ImageUrl = productDto.ImageUrl ?? string.Empty,
+            Stock = productDto.Stock,
+            CategoryId = productDto.CategoryId,
+            IsFeatured = productDto.IsFeatured,
+            IsAvailable = productDto.IsAvailable,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
         _context.Products.Add(product);
+
+        // Add flowers to product
+        if (productDto.Flowers != null && productDto.Flowers.Any())
+        {
+            foreach (var flower in productDto.Flowers)
+            {
+                var productFlower = new ProductFlower
+                {
+                    ProductId = product.Id,
+                    FlowerId = flower.FlowerId,
+                    Quantity = flower.Quantity
+                };
+                _context.ProductFlowers.Add(productFlower);
+
+                // Decrease flower stock
+                var flowerEntity = await _context.Flowers.FindAsync(flower.FlowerId);
+                if (flowerEntity != null)
+                {
+                    flowerEntity.StockQuantity -= flower.Quantity;
+                }
+            }
+        }
+
+        // Add materials to product
+        if (productDto.Materials != null && productDto.Materials.Any())
+        {
+            foreach (var material in productDto.Materials)
+            {
+                var productMaterial = new ProductMaterial
+                {
+                    ProductId = product.Id,
+                    MaterialId = material.MaterialId,
+                    Quantity = material.Quantity
+                };
+                _context.ProductMaterials.Add(productMaterial);
+
+                // Decrease material stock
+                var materialEntity = await _context.Materials.FindAsync(material.MaterialId);
+                if (materialEntity != null)
+                {
+                    materialEntity.StockQuantity -= material.Quantity;
+                }
+            }
+        }
+
         await _context.SaveChangesAsync();
 
-        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, product);
+        var result = new
+        {
+            product.Id,
+            product.Name,
+            product.Description,
+            product.Price,
+            product.ImageUrl,
+            product.Stock,
+            product.CategoryId,
+            product.IsFeatured,
+            product.IsAvailable,
+            product.CreatedAt,
+            product.UpdatedAt
+        };
+
+        return CreatedAtAction(nameof(GetProduct), new { id = product.Id }, result);
     }
 
     // PUT: api/products/5
@@ -178,4 +270,30 @@ public class ProductsController : ControllerBase
     {
         return _context.Products.Any(e => e.Id == id);
     }
+}
+
+public class ProductCreateDto
+{
+    public string Name { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public decimal Price { get; set; }
+    public string? ImageUrl { get; set; }
+    public int Stock { get; set; }
+    public Guid? CategoryId { get; set; }
+    public bool IsFeatured { get; set; } = false;
+    public bool IsAvailable { get; set; } = true;
+    public List<ProductFlowerDto>? Flowers { get; set; }
+    public List<ProductMaterialDto>? Materials { get; set; }
+}
+
+public class ProductFlowerDto
+{
+    public int FlowerId { get; set; }
+    public int Quantity { get; set; }
+}
+
+public class ProductMaterialDto
+{
+    public int MaterialId { get; set; }
+    public int Quantity { get; set; }
 }

@@ -16,6 +16,10 @@ public class ApplicationDbContext : DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<Flower> Flowers { get; set; }
+    public DbSet<Material> Materials { get; set; }
+    public DbSet<ProductFlower> ProductFlowers { get; set; }
+    public DbSet<ProductMaterial> ProductMaterials { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -95,6 +99,56 @@ public class ApplicationDbContext : DbContext
             entity.HasOne(e => e.Product)
                 .WithMany(p => p.OrderItems)
                 .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure Flower entity
+        modelBuilder.Entity<Flower>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        // Configure Material entity
+        modelBuilder.Entity<Material>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.UnitPrice).HasColumnType("decimal(18,2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("NOW()");
+        });
+
+        // Configure ProductFlower junction table
+        modelBuilder.Entity<ProductFlower>(entity =>
+        {
+            entity.HasKey(pf => new { pf.ProductId, pf.FlowerId });
+
+            entity.HasOne(pf => pf.Product)
+                .WithMany(p => p.ProductFlowers)
+                .HasForeignKey(pf => pf.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pf => pf.Flower)
+                .WithMany(f => f.ProductFlowers)
+                .HasForeignKey(pf => pf.FlowerId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Configure ProductMaterial junction table
+        modelBuilder.Entity<ProductMaterial>(entity =>
+        {
+            entity.HasKey(pm => new { pm.ProductId, pm.MaterialId });
+
+            entity.HasOne(pm => pm.Product)
+                .WithMany(p => p.ProductMaterials)
+                .HasForeignKey(pm => pm.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(pm => pm.Material)
+                .WithMany(m => m.ProductMaterials)
+                .HasForeignKey(pm => pm.MaterialId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
 

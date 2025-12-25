@@ -22,6 +22,30 @@ type Category = {
   name: string;
 };
 
+type Flower = {
+  id: number;
+  name: string;
+  stockQuantity: number;
+  unitPrice: number;
+};
+
+type Material = {
+  id: number;
+  name: string;
+  stockQuantity: number;
+  unitPrice: number;
+};
+
+type ProductFlower = {
+  flowerId: number;
+  quantity: number;
+};
+
+type ProductMaterial = {
+  materialId: number;
+  quantity: number;
+};
+
 export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
   const { user, token, isLoading } = useAuth();
@@ -29,6 +53,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [flowers, setFlowers] = useState<Flower[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,10 +64,45 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [categoryId, setCategoryId] = useState<string>("");
+  const [selectedFlowers, setSelectedFlowers] = useState<ProductFlower[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<ProductMaterial[]>(
+    []
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Calculate total cost of flowers and materials
+  const calculateCost = () => {
+    let total = 0;
+
+    selectedFlowers.forEach((sf) => {
+      const flower = flowers.find((f) => f.id === sf.flowerId);
+      if (flower) {
+        total += flower.unitPrice * sf.quantity;
+      }
+    });
+
+    selectedMaterials.forEach((sm) => {
+      const material = materials.find((m) => m.id === sm.materialId);
+      if (material) {
+        total += material.unitPrice * sm.quantity;
+      }
+    });
+
+    return total;
+  };
+
+  const totalCost = calculateCost();
+
+  // Auto-fill recommended price when flowers/materials change
+  useEffect(() => {
+    if (totalCost > 0 && !editingId) {
+      const recommendedPrice = (totalCost * 2.5).toFixed(2);
+      setPrice(recommendedPrice);
+    }
+  }, [totalCost, editingId]);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -52,8 +113,34 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     if (user) {
       fetchProducts();
       fetchCategories();
+      fetchFlowers();
+      fetchMaterials();
     }
   }, [user, isLoading, router, params.lang]);
+
+  const fetchFlowers = async () => {
+    try {
+      const response = await fetch("http://localhost:5074/api/flowers");
+      if (response.ok) {
+        const data = await response.json();
+        setFlowers(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch flowers", err);
+    }
+  };
+
+  const fetchMaterials = async () => {
+    try {
+      const response = await fetch("http://localhost:5074/api/materials");
+      if (response.ok) {
+        const data = await response.json();
+        setMaterials(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch materials", err);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
@@ -91,6 +178,17 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !price || !stock) return;
+
+    // Validate price is not less than cost
+    const priceValue = parseFloat(price);
+    if (priceValue < totalCost) {
+      setError(
+        `Price cannot be less than cost (${totalCost.toFixed(
+          2
+        )} ֏). Please adjust the price.`
+      );
+      return;
+    }
 
     if (!token) {
       setError("Not authenticated. Please login again.");
@@ -164,6 +262,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
           imageUrl: "",
           isFeatured: false,
           isAvailable: true,
+          flowers: selectedFlowers,
+          materials: selectedMaterials,
         };
 
         const response = await fetch("http://localhost:5074/api/products", {
@@ -268,6 +368,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     setStock("");
     setCategoryId("");
     setImageFile(null);
+    setSelectedFlowers([]);
+    setSelectedMaterials([]);
   };
 
   if (isLoading || loading) {
@@ -401,17 +503,34 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Price
+                        Price (֏)
                       </label>
                       <input
                         type="number"
                         step="0.01"
+                        min={totalCost}
                         value={price}
                         onChange={(e) => setPrice(e.target.value)}
                         className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                         placeholder="0.00"
                         required
                       />
+                      {totalCost > 0 && (
+                        <div className="mt-1 space-y-1">
+                          <p className="text-xs text-gray-600">
+                            Min cost: {totalCost.toFixed(2)} ֏
+                            {parseFloat(price) > 0 &&
+                              parseFloat(price) < totalCost && (
+                                <span className="text-red-600 ml-1">
+                                  (Price too low!)
+                                </span>
+                              )}
+                          </p>
+                          <p className="text-xs font-semibold text-green-700">
+                            Recommended: {(totalCost * 2.5).toFixed(2)} ֏
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div>
@@ -446,6 +565,204 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                       ))}
                     </select>
                   </div>
+
+                  {/* Flowers Selection */}
+                  <div className="border-t pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Flowers Used
+                    </label>
+                    <div className="space-y-2">
+                      {flowers
+                        .filter((flower) => flower.stockQuantity >= 1)
+                        .map((flower) => (
+                          <div
+                            key={flower.id}
+                            className="flex items-center space-x-3"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedFlowers.some(
+                                (f) => f.flowerId === flower.id
+                              )}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedFlowers([
+                                    ...selectedFlowers,
+                                    { flowerId: flower.id, quantity: 1 },
+                                  ]);
+                                } else {
+                                  setSelectedFlowers(
+                                    selectedFlowers.filter(
+                                      (f) => f.flowerId !== flower.id
+                                    )
+                                  );
+                                }
+                              }}
+                              className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                            />
+                            <span className="flex-1 text-sm">
+                              {flower.name} (Stock: {flower.stockQuantity})
+                            </span>
+                            {selectedFlowers.some(
+                              (f) => f.flowerId === flower.id
+                            ) && (
+                              <input
+                                type="number"
+                                min="1"
+                                max={flower.stockQuantity}
+                                value={
+                                  selectedFlowers.find(
+                                    (f) => f.flowerId === flower.id
+                                  )?.quantity || 1
+                                }
+                                onChange={(e) => {
+                                  setSelectedFlowers(
+                                    selectedFlowers.map((f) =>
+                                      f.flowerId === flower.id
+                                        ? {
+                                            ...f,
+                                            quantity:
+                                              parseInt(e.target.value) || 1,
+                                          }
+                                        : f
+                                    )
+                                  );
+                                }}
+                                className="w-20 px-2 py-1 border-gray-300 rounded-md text-sm"
+                                placeholder="Qty"
+                              />
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Materials Selection */}
+                  <div className="border-t pt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Materials Used
+                    </label>
+                    <div className="space-y-2">
+                      {materials
+                        .filter((material) => material.stockQuantity >= 1)
+                        .map((material) => (
+                          <div
+                            key={material.id}
+                            className="flex items-center space-x-3"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedMaterials.some(
+                                (m) => m.materialId === material.id
+                              )}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMaterials([
+                                    ...selectedMaterials,
+                                    { materialId: material.id, quantity: 1 },
+                                  ]);
+                                } else {
+                                  setSelectedMaterials(
+                                    selectedMaterials.filter(
+                                      (m) => m.materialId !== material.id
+                                    )
+                                  );
+                                }
+                              }}
+                              className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                            />
+                            <span className="flex-1 text-sm">
+                              {material.name} (Stock: {material.stockQuantity})
+                            </span>
+                            {selectedMaterials.some(
+                              (m) => m.materialId === material.id
+                            ) && (
+                              <input
+                                type="number"
+                                min="1"
+                                max={material.stockQuantity}
+                                value={
+                                  selectedMaterials.find(
+                                    (m) => m.materialId === material.id
+                                  )?.quantity || 1
+                                }
+                                onChange={(e) => {
+                                  setSelectedMaterials(
+                                    selectedMaterials.map((m) =>
+                                      m.materialId === material.id
+                                        ? {
+                                            ...m,
+                                            quantity:
+                                              parseInt(e.target.value) || 1,
+                                          }
+                                        : m
+                                    )
+                                  );
+                                }}
+                                className="w-20 px-2 py-1 border-gray-300 rounded-md text-sm"
+                                placeholder="Qty"
+                              />
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+
+                  {/* Cost Summary */}
+                  {(selectedFlowers.length > 0 ||
+                    selectedMaterials.length > 0) && (
+                    <div className="border-t pt-4 bg-blue-50 p-4 rounded-md">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
+                        Cost Breakdown:
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        {selectedFlowers.map((sf) => {
+                          const flower = flowers.find(
+                            (f) => f.id === sf.flowerId
+                          );
+                          if (!flower) return null;
+                          const cost = flower.unitPrice * sf.quantity;
+                          return (
+                            <div
+                              key={sf.flowerId}
+                              className="flex justify-between text-gray-600"
+                            >
+                              <span>
+                                {flower.name} × {sf.quantity}
+                              </span>
+                              <span>{cost.toFixed(2)} ֏</span>
+                            </div>
+                          );
+                        })}
+                        {selectedMaterials.map((sm) => {
+                          const material = materials.find(
+                            (m) => m.id === sm.materialId
+                          );
+                          if (!material) return null;
+                          const cost = material.unitPrice * sm.quantity;
+                          return (
+                            <div
+                              key={sm.materialId}
+                              className="flex justify-between text-gray-600"
+                            >
+                              <span>
+                                {material.name} × {sm.quantity}
+                              </span>
+                              <span>{cost.toFixed(2)} ֏</span>
+                            </div>
+                          );
+                        })}
+                        <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between font-semibold text-gray-800">
+                          <span>Total Cost:</span>
+                          <span>{totalCost.toFixed(2)} ֏</span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-green-700 mt-1">
+                          <span>Recommended Price (2.5×):</span>
+                          <span>{(totalCost * 2.5).toFixed(2)} ֏</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700">

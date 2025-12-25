@@ -14,7 +14,9 @@ public class Product
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation property
+    // Navigation properties
     public Category? Category { get; set; }
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+    public ICollection<ProductFlower> ProductFlowers { get; set; } = new List<ProductFlower>();
+    public ICollection<ProductMaterial> ProductMaterials { get; set; } = new List<ProductMaterial>();
 }
