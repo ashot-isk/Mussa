@@ -12,7 +12,7 @@ interface Category {
 }
 
 export default function AdminCategoriesPage() {
-  const { user, token } = useAuth();
+  const { user, token, checkAuth } = useAuth();
   const router = useRouter();
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -31,6 +31,7 @@ export default function AdminCategoriesPage() {
       router.push("/en/admin/login");
       return;
     }
+    checkAuth();
     fetchCategories();
   }, [user, token, router]);
 

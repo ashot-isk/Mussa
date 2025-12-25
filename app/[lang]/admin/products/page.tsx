@@ -48,7 +48,7 @@ type ProductMaterial = {
 
 export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
-  const { user, token, isLoading } = useAuth();
+  const { user, token, isLoading, checkAuth } = useAuth();
   const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -111,6 +111,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     }
 
     if (user) {
+      // Verify token is still valid
+      checkAuth();
+
       fetchProducts();
       fetchCategories();
       fetchFlowers();

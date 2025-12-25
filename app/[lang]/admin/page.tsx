@@ -8,12 +8,14 @@ import { ui, Lang } from "../../i18n/config";
 
 export default function AdminDashboard({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, checkAuth } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push(`/${params.lang}/admin/login`);
+    } else if (user) {
+      checkAuth();
     }
   }, [user, isLoading, router, params.lang]);
 

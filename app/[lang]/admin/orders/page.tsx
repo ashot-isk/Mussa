@@ -31,7 +31,7 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
-  const { user, token } = useAuth();
+  const { user, token, checkAuth } = useAuth();
   const router = useRouter();
 
   const [orders, setOrders] = useState<Order[]>([]);
@@ -43,6 +43,7 @@ export default function AdminOrdersPage() {
       router.push("/en/admin/login");
       return;
     }
+    checkAuth();
     fetchOrders();
   }, [user, token, router]);
 

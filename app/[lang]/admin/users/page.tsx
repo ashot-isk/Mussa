@@ -15,7 +15,7 @@ type User = {
 
 export default function AdminUsers({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
-  const { user, token, isLoading } = useAuth();
+  const { user, token, isLoading, checkAuth } = useAuth();
   const router = useRouter();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -36,6 +36,7 @@ export default function AdminUsers({ params }: { params: { lang: Lang } }) {
     }
 
     if (user && user.role === "Supervisor") {
+      checkAuth();
       fetchUsers();
     }
   }, [user, isLoading, router, params.lang]);
