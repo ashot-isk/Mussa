@@ -108,10 +108,20 @@ public class CategoriesController : ControllerBase
     [Authorize(Roles = "Supervisor")]
     public async Task<IActionResult> DeleteCategory(Guid id)
     {
-        var category = await _context.Categories.FindAsync(id);
+        var category = await _context.Categories
+            .Include(c => c.Products)
+            .FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
             return NotFound();
+        }
+
+        // Preserve products; save their updates and the deletion atomically.
+        foreach (var product in category.Products.ToList())
+        {
+            product.CategoryId = null;
+            product.Category = null;
+            product.UpdatedAt = DateTime.UtcNow;
         }
 
         _context.Categories.Remove(category);

@@ -131,11 +131,12 @@ public class ProductsController : ControllerBase
                 };
                 _context.ProductFlowers.Add(productFlower);
 
-                // Decrease flower stock
+                // Decrease flower stock (multiply by product stock quantity)
                 var flowerEntity = await _context.Flowers.FindAsync(flower.FlowerId);
+              
                 if (flowerEntity != null)
                 {
-                    flowerEntity.StockQuantity -= flower.Quantity;
+                    flowerEntity.StockQuantity -= flower.Quantity * product.Stock;
                 }
             }
         }
@@ -153,11 +154,13 @@ public class ProductsController : ControllerBase
                 };
                 _context.ProductMaterials.Add(productMaterial);
 
-                // Decrease material stock
+                // Decrease material stock (convert cm to meters and multiply by product stock)
                 var materialEntity = await _context.Materials.FindAsync(material.MaterialId);
                 if (materialEntity != null)
                 {
-                    materialEntity.StockQuantity -= material.Quantity;
+                    // Material stock is in meters, quantity is in cm, so divide by 100
+                    // Multiply by product stock quantity
+                    materialEntity.StockQuantity -= ((decimal)material.Quantity / 100m) * product.Stock;
                 }
             }
         }
@@ -185,14 +188,97 @@ public class ProductsController : ControllerBase
     // PUT: api/products/5
     [HttpPut("{id}")]
     [Authorize]
-    public async Task<IActionResult> PutProduct(Guid id, Product product)
+    public async Task<IActionResult> PutProduct(Guid id, ProductCreateDto productDto)
     {
-        if (id != product.Id)
+        var product = await _context.Products
+            .Include(p => p.ProductFlowers)
+            .Include(p => p.ProductMaterials)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (product == null)
         {
-            return BadRequest();
+            return NotFound();
         }
 
-        _context.Entry(product).State = EntityState.Modified;
+        // Restore stock for old flowers and materials before updating (multiply by old stock)
+        var oldStock = product.Stock;
+        foreach (var oldFlower in product.ProductFlowers)
+        {
+            var flowerEntity = await _context.Flowers.FindAsync(oldFlower.FlowerId);
+            if (flowerEntity != null)
+            {
+                flowerEntity.StockQuantity += oldFlower.Quantity * oldStock;
+            }
+        }
+
+        foreach (var oldMaterial in product.ProductMaterials)
+        {
+            var materialEntity = await _context.Materials.FindAsync(oldMaterial.MaterialId);
+            if (materialEntity != null)
+            {
+                // Material stock is in meters, quantity is in cm
+                materialEntity.StockQuantity += ((decimal)oldMaterial.Quantity / 100m) * oldStock;
+            }
+        }
+
+        // Remove old flower and material associations
+        _context.ProductFlowers.RemoveRange(product.ProductFlowers);
+        _context.ProductMaterials.RemoveRange(product.ProductMaterials);
+
+        // Update product basic info
+        product.Name = productDto.Name;
+        product.Description = productDto.Description;
+        product.Price = productDto.Price;
+        product.Stock = productDto.Stock;
+        product.CategoryId = productDto.CategoryId;
+        product.IsFeatured = productDto.IsFeatured;
+        product.IsAvailable = productDto.IsAvailable;
+        product.UpdatedAt = DateTime.UtcNow;
+
+        // Add new flowers (multiply by new stock)
+        if (productDto.Flowers != null && productDto.Flowers.Any())
+        {
+            foreach (var flower in productDto.Flowers)
+            {
+                var productFlower = new ProductFlower
+                {
+                    ProductId = product.Id,
+                    FlowerId = flower.FlowerId,
+                    Quantity = flower.Quantity
+                };
+                _context.ProductFlowers.Add(productFlower);
+
+                // Decrease flower stock (multiply by new product stock)
+                var flowerEntity = await _context.Flowers.FindAsync(flower.FlowerId);
+                if (flowerEntity != null)
+                {
+                    flowerEntity.StockQuantity -= flower.Quantity * productDto.Stock;
+                }
+            }
+        }
+
+        // Add new materials (multiply by new stock)
+        if (productDto.Materials != null && productDto.Materials.Any())
+        {
+            foreach (var material in productDto.Materials)
+            {
+                var productMaterial = new ProductMaterial
+                {
+                    ProductId = product.Id,
+                    MaterialId = material.MaterialId,
+                    Quantity = material.Quantity
+                };
+                _context.ProductMaterials.Add(productMaterial);
+
+                // Decrease material stock (convert cm to meters and multiply by new product stock)
+                var materialEntity = await _context.Materials.FindAsync(material.MaterialId);
+                if (materialEntity != null)
+                {
+                    // Material stock is in meters, quantity is in cm, so divide by 100
+                    materialEntity.StockQuantity -= ((decimal)material.Quantity / 100m) * productDto.Stock;
+                }
+            }
+        }
 
         try
         {

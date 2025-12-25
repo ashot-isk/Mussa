@@ -41,6 +41,27 @@ export default function MaterialsPage({ params }: { params: { lang: Lang } }) {
   useEffect(() => {
     if (user) {
       fetchMaterials();
+
+      // Auto-refresh every 5 seconds
+      const interval = setInterval(() => {
+        fetchMaterials();
+      }, 5000);
+
+      // Refresh when page becomes visible
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          fetchMaterials();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
     }
   }, [user]);
 
@@ -219,7 +240,7 @@ export default function MaterialsPage({ params }: { params: { lang: Lang } }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Stock Quantity *
+                    Stock Quantity (meters) *
                   </label>
                   <input
                     type="number"
@@ -237,7 +258,7 @@ export default function MaterialsPage({ params }: { params: { lang: Lang } }) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
-                    Unit Price (֏) *
+                    Unit Price (֏/meter) *
                   </label>
                   <input
                     type="number"
@@ -290,10 +311,10 @@ export default function MaterialsPage({ params }: { params: { lang: Lang } }) {
                   Description
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Stock
+                  Stock (m)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Price (֏)
+                  Price (֏/m)
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Actions

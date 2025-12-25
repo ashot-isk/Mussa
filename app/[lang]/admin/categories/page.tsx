@@ -1,24 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "../../../providers/AuthProvider";
 
 interface Category {
-  id: number;
+  id: string;
   name: string;
   description: string;
   imageUrl: string;
 }
 
 export default function AdminCategoriesPage() {
-  const { user, token, checkAuth } = useAuth();
+  const { user, token, isLoading, checkAuth } = useAuth();
   const router = useRouter();
+  const { lang } = useParams<{ lang: string }>();
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -27,13 +30,33 @@ export default function AdminCategoriesPage() {
   });
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (!user) {
-      router.push("/en/admin/login");
+      router.replace(`/${lang}/admin/login`);
       return;
     }
     checkAuth();
     fetchCategories();
-  }, [user, token, router]);
+
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchCategories();
+    }, 5000);
+
+    // Refresh when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchCategories();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user, token, isLoading, router, lang]);
 
   const fetchCategories = async () => {
     try {
@@ -85,20 +108,41 @@ export default function AdminCategoriesPage() {
     setShowForm(true);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+  const handleDelete = async (id: string) => {
+    if (deletingId) return;
+    if (
+      !confirm(
+        "Delete this category? Its products will be kept without a category.",
+      )
+    )
+      return;
 
+    setDeleteError("");
+    setDeletingId(id);
     try {
       const res = await fetch(`http://localhost:5074/api/categories/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (res.ok) {
-        fetchCategories();
+      if (res.ok || res.status === 404) {
+        setCategories((current) =>
+          current.filter((category) => category.id !== id),
+        );
+        if (editingId === id) resetForm();
+        await fetchCategories();
+      } else if (res.status === 401) {
+        setDeleteError("Your session has expired. Please sign in again.");
+        checkAuth();
+      } else if (res.status === 403) {
+        setDeleteError("Only a supervisor can delete categories.");
+      } else {
+        setDeleteError("Could not delete the category. Please try again.");
       }
-    } catch (err) {
-      console.error("Failed to delete category", err);
+    } catch {
+      setDeleteError("Could not connect to the API. Please try again.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -108,13 +152,15 @@ export default function AdminCategoriesPage() {
     setShowForm(false);
   };
 
-  if (loading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p>Loading categories...</p>
       </div>
     );
   }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -129,7 +175,7 @@ export default function AdminCategoriesPage() {
               {showForm ? "Cancel" : "+ Add Category"}
             </button>
             <button
-              onClick={() => router.push("/en/admin")}
+              onClick={() => router.push(`/${lang}/admin`)}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
             >
               ← Back to Dashboard
@@ -139,6 +185,14 @@ export default function AdminCategoriesPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-6 py-8">
+        {deleteError && (
+          <p
+            role="alert"
+            className="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-700"
+          >
+            {deleteError}
+          </p>
+        )}
         {/* Form */}
         {showForm && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -248,9 +302,10 @@ export default function AdminCategoriesPage() {
                       </button>
                       <button
                         onClick={() => handleDelete(category.id)}
-                        className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200"
+                        disabled={deletingId !== null}
+                        className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded hover:bg-red-200 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        Delete
+                        {deletingId === category.id ? "Deleting..." : "Delete"}
                       </button>
                     </div>
                   </div>

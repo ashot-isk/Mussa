@@ -87,7 +87,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     selectedMaterials.forEach((sm) => {
       const material = materials.find((m) => m.id === sm.materialId);
       if (material) {
-        total += material.unitPrice * sm.quantity;
+        // Material price is per meter, quantity is in cm, so divide by 100
+        total += material.unitPrice * (sm.quantity / 100);
       }
     });
 
@@ -118,6 +119,31 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
       fetchCategories();
       fetchFlowers();
       fetchMaterials();
+
+      // Auto-refresh every 5 seconds
+      const interval = setInterval(() => {
+        fetchProducts();
+        fetchFlowers();
+        fetchMaterials();
+      }, 5000);
+
+      // Refresh when page becomes visible
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          fetchProducts();
+          fetchFlowers();
+          fetchMaterials();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
     }
   }, [user, isLoading, router, params.lang]);
 
@@ -182,6 +208,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     e.preventDefault();
     if (!name.trim() || !price || !stock) return;
 
+    const stockQuantity = parseInt(stock);
+
     // Validate price is not less than cost
     const priceValue = parseFloat(price);
     if (priceValue < totalCost) {
@@ -191,6 +219,38 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
         )} ֏). Please adjust the price.`
       );
       return;
+    }
+
+    // Validate stock availability for flowers and materials
+    for (const sf of selectedFlowers) {
+      const flower = flowers.find((f) => f.id === sf.flowerId);
+      if (flower) {
+        const requiredQuantity = sf.quantity * stockQuantity;
+        if (flower.stockQuantity < requiredQuantity) {
+          setError(
+            `Not enough stock for ${flower.name}. Required: ${requiredQuantity}, Available: ${flower.stockQuantity}`
+          );
+          return;
+        }
+      }
+    }
+
+    for (const sm of selectedMaterials) {
+      const material = materials.find((m) => m.id === sm.materialId);
+      if (material) {
+        const requiredQuantityCm = sm.quantity * stockQuantity;
+        const requiredQuantityMeters = requiredQuantityCm / 100;
+        if (material.stockQuantity < requiredQuantityMeters) {
+          setError(
+            `Not enough stock for ${
+              material.name
+            }. Required: ${requiredQuantityCm}cm, Available: ${(
+              material.stockQuantity * 100
+            ).toFixed(0)}cm`
+          );
+          return;
+        }
+      }
     }
 
     if (!token) {
@@ -204,28 +264,18 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
     try {
       if (editingId) {
-        // For updates, fetch existing product first
-        const existingResponse = await fetch(
-          `http://localhost:5074/api/products/${editingId}`
-        );
-
-        if (!existingResponse.ok) {
-          setError("Failed to fetch product data");
-          setSubmitting(false);
-          return;
-        }
-
-        const existingProduct = await existingResponse.json();
-
-        // Update with new data while preserving all fields
+        // For updates, send product data with flowers and materials
         const updatedProduct = {
-          ...existingProduct,
           name: name.trim(),
           description: description.trim(),
           price: parseFloat(price),
           stock: parseInt(stock),
-          categoryId: categoryId ? categoryId : null,
-          updatedAt: new Date().toISOString(),
+          categoryId: categoryId || null,
+          imageUrl: "",
+          isFeatured: false,
+          isAvailable: true,
+          flowers: selectedFlowers,
+          materials: selectedMaterials,
         };
 
         const response = await fetch(
@@ -246,6 +296,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
             await handleImageUpload(editingId);
           }
           await fetchProducts();
+          await fetchFlowers();
+          await fetchMaterials();
           resetForm();
         } else if (response.status === 401) {
           setError("Authentication failed. Please login again.");
@@ -287,6 +339,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
           }
 
           await fetchProducts();
+          await fetchFlowers();
+          await fetchMaterials();
           resetForm();
         } else if (response.status === 401) {
           setError("Authentication failed. Please login again.");
@@ -333,13 +387,47 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     }
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = async (product: Product) => {
     setEditingId(product.id);
     setName(product.name);
     setDescription(product.description);
     setPrice(product.price.toString());
     setStock(product.stock.toString());
     setCategoryId(product.categoryId ? product.categoryId.toString() : "");
+
+    // Fetch full product details including flowers and materials
+    try {
+      const response = await fetch(
+        `http://localhost:5074/api/products/${product.id}`
+      );
+      if (response.ok) {
+        const fullProduct = await response.json();
+
+        // Load flowers
+        if (fullProduct.flowers && fullProduct.flowers.length > 0) {
+          const loadedFlowers: ProductFlower[] = fullProduct.flowers.map(
+            (f: any) => ({
+              flowerId: f.flowerId,
+              quantity: f.quantity,
+            })
+          );
+          setSelectedFlowers(loadedFlowers);
+        }
+
+        // Load materials
+        if (fullProduct.materials && fullProduct.materials.length > 0) {
+          const loadedMaterials: ProductMaterial[] = fullProduct.materials.map(
+            (m: any) => ({
+              materialId: m.materialId,
+              quantity: m.quantity,
+            })
+          );
+          setSelectedMaterials(loadedMaterials);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load product details:", err);
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -643,7 +731,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                   {/* Materials Selection */}
                   <div className="border-t pt-4">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Materials Used
+                      Materials Used (quantity in cm)
                     </label>
                     <div className="space-y-2">
                       {materials
@@ -675,7 +763,9 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                               className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
                             />
                             <span className="flex-1 text-sm">
-                              {material.name} (Stock: {material.stockQuantity})
+                              {material.name} (Stock:{" "}
+                              {(material.stockQuantity * 100).toFixed(0)}cm,
+                              Price: {material.unitPrice}֏/m)
                             </span>
                             {selectedMaterials.some(
                               (m) => m.materialId === material.id
@@ -683,7 +773,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                               <input
                                 type="number"
                                 min="1"
-                                max={material.stockQuantity}
+                                max={material.stockQuantity * 100}
                                 value={
                                   selectedMaterials.find(
                                     (m) => m.materialId === material.id
@@ -703,7 +793,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                   );
                                 }}
                                 className="w-20 px-2 py-1 border-gray-300 rounded-md text-sm"
-                                placeholder="Qty"
+                                placeholder="cm"
                               />
                             )}
                           </div>
@@ -742,14 +832,15 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                             (m) => m.id === sm.materialId
                           );
                           if (!material) return null;
-                          const cost = material.unitPrice * sm.quantity;
+                          // Material price is per meter, quantity is in cm
+                          const cost = material.unitPrice * (sm.quantity / 100);
                           return (
                             <div
                               key={sm.materialId}
                               className="flex justify-between text-gray-600"
                             >
                               <span>
-                                {material.name} × {sm.quantity}
+                                {material.name} × {sm.quantity} cm
                               </span>
                               <span>{cost.toFixed(2)} ֏</span>
                             </div>

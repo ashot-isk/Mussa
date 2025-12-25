@@ -20,6 +20,8 @@ export default function FlowersPage({ params }: { params: { lang: Lang } }) {
   const router = useRouter();
   const [flowers, setFlowers] = useState<Flower[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingFlower, setEditingFlower] = useState<Flower | null>(null);
   const [formData, setFormData] = useState({
@@ -41,6 +43,27 @@ export default function FlowersPage({ params }: { params: { lang: Lang } }) {
   useEffect(() => {
     if (user) {
       fetchFlowers();
+
+      // Auto-refresh every 5 seconds
+      const interval = setInterval(() => {
+        fetchFlowers();
+      }, 5000);
+
+      // Refresh when page becomes visible
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          fetchFlowers();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange,
+        );
+      };
     }
   }, [user]);
 
@@ -110,22 +133,43 @@ export default function FlowersPage({ params }: { params: { lang: Lang } }) {
   };
 
   const handleDelete = async (id: number) => {
+    if (deletingId !== null) return;
     if (!confirm("Are you sure you want to delete this flower?")) return;
 
+    setDeleteError("");
+    setDeletingId(id);
     const token = localStorage.getItem("authToken");
     try {
       const response = await fetch(`http://localhost:5074/api/flowers/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.ok) {
-        fetchFlowers();
+      if (response.ok || response.status === 404) {
+        setFlowers((current) => current.filter((flower) => flower.id !== id));
+        if (editingFlower?.id === id) {
+          setEditingFlower(null);
+          setShowForm(false);
+        }
+        await fetchFlowers();
+      } else if (response.status === 409) {
+        const data = await response.json();
+        setDeleteError(
+          data.message ||
+            "Remove this flower from its products before deleting it.",
+        );
+      } else if (response.status === 401) {
+        setDeleteError("Your session has expired. Please sign in again.");
+        checkAuth();
+      } else if (response.status === 403) {
+        setDeleteError("You do not have permission to delete flowers.");
+      } else {
+        setDeleteError("Could not delete the flower. Please try again.");
       }
-    } catch (error) {
-      console.error("Error deleting flower:", error);
+    } catch {
+      setDeleteError("Could not connect to the API. Please try again.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -178,6 +222,14 @@ export default function FlowersPage({ params }: { params: { lang: Lang } }) {
       </header>
 
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {deleteError && (
+          <p
+            role="alert"
+            className="mb-6 rounded-md bg-red-50 p-4 text-sm text-red-700"
+          >
+            {deleteError}
+          </p>
+        )}
         {showForm && (
           <div className="bg-white shadow rounded-lg p-6 mb-6">
             <h2 className="text-xl font-semibold mb-4">
@@ -329,9 +381,10 @@ export default function FlowersPage({ params }: { params: { lang: Lang } }) {
                     </button>
                     <button
                       onClick={() => handleDelete(flower.id)}
+                      disabled={deletingId !== null}
                       className="text-red-600 hover:text-red-900"
                     >
-                      Delete
+                      {deletingId === flower.id ? "Deleting..." : "Delete"}
                     </button>
                   </td>
                 </tr>

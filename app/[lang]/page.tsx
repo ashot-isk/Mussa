@@ -1,126 +1,321 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { ui, Lang, defaultLang } from "../i18n/config";
-import ProductCard from "../components/ProductCard";
 
+const copy = {
+  en: {
+    eyebrow: "A LITTLE WILD. ALWAYS PERSONAL.",
+    hero: [
+      "Say it with flowers.",
+      "A softer kind of luxury.",
+      "Let something beautiful bloom.",
+    ],
+    discover: "Discover the collection",
+    popular: "THE MUSSA EDIT",
+    all: "Explore all flowers",
+    collections: "FLOWERS, YOUR WAY",
+    story: "MORE THAN FLOWERS.\nA FEELING.",
+    body: "For the big moments. For the just-because moments. We bring together unexpected colours, beautiful textures and a little bit of wildness. Every arrangement has its own story. Let’s find yours.",
+    about: "Meet Mussa",
+    names: [
+      "The romantic",
+      "The garden muse",
+      "A little wild",
+      "The signature",
+    ],
+    tags: [
+      "PEONIES & ROSES",
+      "SOFT & SEASONAL",
+      "MEADOW-INSPIRED",
+      "BOLD & BEAUTIFUL",
+    ],
+    collectionNames: ["Everyday, extraordinary", "Made for your moment"],
+    collectionSub: [
+      "A little beauty, just because.",
+      "Flowers that say everything.",
+    ],
+    note: "Thoughtfully composed. Beautifully yours.",
+    shop: "Shop the collection",
+    fresh: "FROM THE STUDIO",
+    footer: "Flowers that speak for you.",
+  },
+  ru: {
+    eyebrow: "НЕМНОГО ДИКОСТИ. МНОГО ЧУВСТВ.",
+    hero: [
+      "Скажите это цветами.",
+      "Нежное искусство роскоши.",
+      "Пусть расцветает прекрасное.",
+    ],
+    discover: "Смотреть коллекцию",
+    popular: "ВЫБОР MUSSA",
+    all: "Все цветы",
+    collections: "ЦВЕТЫ В ВАШЕМ СТИЛЕ",
+    story: "БОЛЬШЕ ЧЕМ ЦВЕТЫ.\nЧУВСТВА.",
+    body: "Для важных событий. И просто так. Мы соединяем неожиданные оттенки, выразительные фактуры и немного дикой природы. У каждой композиции своя история. Найдём вашу.",
+    about: "О студии",
+    names: ["Романтика", "Садовая муза", "Дикая нежность", "Почерк Mussa"],
+    tags: [
+      "ПИОНЫ И РОЗЫ",
+      "НЕЖНОСТЬ СЕЗОНА",
+      "ВДОХНОВЕНИЕ ЛУГОМ",
+      "ЯРКИЙ ХАРАКТЕР",
+    ],
+    collectionNames: ["Прекрасное каждый день", "Для вашего момента"],
+    collectionSub: [
+      "Немного красоты. Просто так.",
+      "Цветы, которые говорят обо всём.",
+    ],
+    note: "Собраны с чувством. Созданы для вас.",
+    shop: "Смотреть коллекцию",
+    fresh: "ИЗ СТУДИИ",
+    footer: "Цветы, которые говорят за вас.",
+  },
+  hy: {
+    eyebrow: "ՄԻ ՓՈՔՐ ՎԱՅՐԻ։ ՄԻՇՏ ԱՆՁՆԱԿԱՆ։",
+    hero: [
+      "Ասեք ծաղիկներով։",
+      "Շքեղության նուրբ արվեստը։",
+      "Թող գեղեցիկը ծաղկի։",
+    ],
+    discover: "Բացահայտել հավաքածուն",
+    popular: "MUSSA-Ի ԸՆՏՐԱՆԻՆ",
+    all: "Բոլոր ծաղիկները",
+    collections: "ԾԱՂԻԿՆԵՐ՝ ՁԵՐ ՈՃՈՎ",
+    story: "ԱՎԵԼԻՆ, ՔԱՆ ԾԱՂԻԿՆԵՐ։\nԶԳԱՑՄՈՒՆՔ։",
+    body: "Կարևոր պահերի համար։ Եվ պարզապես այդպես։ Մենք միավորում ենք անսպասելի գույները, գեղեցիկ հյուսվածքներն ու բնության շունչը։ Յուրաքանչյուր կոմպոզիցիա ունի իր պատմությունը։ Գտնենք ձերը։",
+    about: "Մեր մասին",
+    names: [
+      "Ռոմանտիկա",
+      "Այգու մուսան",
+      "Վայրի քնքշություն",
+      "Mussa-ի ձեռագիրը",
+    ],
+    tags: [
+      "ՔԱՋՎԱՐԴԵՐ ԵՎ ՎԱՐԴԵՐ",
+      "ՍԵԶՈՆԻ ՔՆՔՇՈՒԹՅՈՒՆԸ",
+      "ՄԱՐԳԱԳԵՏՆԻ ՇՈՒՆՉԸ",
+      "ՎԱՌ ԵՎ ԳԵՂԵՑԻԿ",
+    ],
+    collectionNames: ["Գեղեցիկն ամեն օր", "Ձեր պահի համար"],
+    collectionSub: [
+      "Մի փոքր գեղեցկություն՝ պարզապես այդպես։",
+      "Ծաղիկներ, որոնք ասում են ամեն ինչ։",
+    ],
+    note: "Սիրով հավաքված։ Ձեզ համար ստեղծված։",
+    shop: "Դիտել հավաքածուն",
+    fresh: "ՍՏՈՒԴԻԱՅԻՑ",
+    footer: "Ծաղիկներ, որոնք խոսում են ձեր փոխարեն։",
+  },
+};
+const photos = ["rose", "garden", "meadow", "signature"];
 type Product = {
-  id: string;
+  stock: number;
+  isAvailable: boolean;
+  id: number;
   name: string;
-  description: string;
   price: number;
   imageUrl: string;
-  stock: number;
 };
 
 export default function Home({ params }: { params: { lang: Lang } }) {
-  const lang: Lang =
-    params?.lang && ui[params.lang] ? params.lang : defaultLang;
-  const t = ui[lang];
+  const lang = ui[params.lang] ? params.lang : defaultLang;
+  const c = copy[lang];
+  const [slide, setSlide] = useState(0);
   const [products, setProducts] = useState<Product[]>([]);
-
+  const base = `/${lang}`;
   useEffect(() => {
-    fetchProducts();
+    const controller = new AbortController();
+    fetch("http://localhost:5074/api/products", { signal: controller.signal })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setProducts(data.slice(0, 4));
+      })
+      .catch(() => {});
+    return () => controller.abort();
   }, []);
-
-  const fetchProducts = async () => {
-    try {
-      const response = await fetch("http://localhost:5074/api/products");
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Fetched products:", data);
-        // Take only first 3 products for homepage
-        setProducts(data.slice(0, 3));
-      } else {
-        console.error("Failed to fetch products, status:", response.status);
-      }
-    } catch (err) {
-      console.error("Failed to fetch products:", err);
-    }
-  };
-
   return (
     <>
-      <Header t={t} />
-      <main>
-        <section className="max-w-6xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10">
-          <div>
-            <h1 className="font-serif text-4xl md:text-5xl">{t.hero.title}</h1>
-            <p className="mt-4 text-dark/70">{t.hero.subtitle}</p>
-            <div className="mt-6 flex gap-4 flex-wrap">
-              <a
-                href={`/${params.lang}/shop`}
-                className="px-6 py-3 bg-accent text-white rounded-full text-xs uppercase tracking-[0.12em]"
-              >
-                {t.hero.shop}
-              </a>
-              <a
-                href={`/${params.lang}/shop`}
-                className="px-6 py-3 border border-dark rounded-full text-xs uppercase tracking-[0.12em]"
-              >
-                {t.hero.seasonal}
-              </a>
-            </div>
+      <Header t={ui[lang]} />
+      <main className="floral-home">
+        <section
+          className={`floral-hero campaign-${slide}`}
+          aria-label={c.hero[slide]}
+        >
+          <img
+            key={slide}
+            className="floral-hero-photo"
+            src={`/editorial/${["rose", "garden", "meadow"][slide]}.webp`}
+            alt={c.hero[slide]}
+            fetchPriority="high"
+          />
+          <div className="floral-hero-copy">
+            <p className="floral-eyebrow">{c.eyebrow}</p>
+            <h1>mussa</h1>
+            <p className="floral-hero-title">{c.hero[slide]}</p>
+            <Link href={`${base}/shop`} className="floral-underline">
+              {c.discover}
+              <span>↗</span>
+            </Link>
           </div>
-          <div className="rounded-3xl overflow-hidden bg-bgSecondary shadow">
-            <img
-              src="/images/hero.jpg"
-              alt="MUSSA bouquet"
-              className="w-full h-full object-cover"
-            />
+          <div className="floral-slide-controls">
+            <span>0{slide + 1} / 03</span>
+            <div className="floral-slide-tabs">
+              {[0, 1, 2].map((i) => (
+                <button
+                  key={i}
+                  aria-label={`${c.hero[i]} — ${i + 1}`}
+                  aria-pressed={slide === i}
+                  onClick={() => setSlide(i)}
+                  className={slide === i ? "active" : ""}
+                />
+              ))}
+            </div>
+            <button
+              aria-label="Previous slide"
+              onClick={() => setSlide((slide + 2) % 3)}
+            >
+              ←
+            </button>
+            <button
+              aria-label="Next slide"
+              onClick={() => setSlide((slide + 1) % 3)}
+            >
+              →
+            </button>
           </div>
         </section>
-        <section className="max-w-6xl mx-auto px-6 pb-16">
-          <div className="flex items-end justify-between mb-4">
-            <h2 className="font-serif text-2xl">Trending now</h2>
+        <section className="floral-section">
+          <div className="floral-section-heading">
+            <h2>{c.popular}</h2>
+            <Link href={`${base}/shop`} aria-label={c.all}>
+              <span>{c.all}</span>
+              <b>⟶</b>
+            </Link>
           </div>
-          <div className="grid md:grid-cols-3 gap-5">
-            {products.length > 0 ? (
-              products.map((product) => (
-                <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  name={product.name}
-                  price={product.price}
-                  image={
-                    product.imageUrl
-                      ? `http://localhost:5074${product.imageUrl}`
-                      : "https://images.unsplash.com/photo-1509043759401-136742328bb3?auto=format&fit=crop&w=900&q=80"
-                  }
-                  lang={lang}
-                />
-              ))
-            ) : (
-              <>
-                <ProductCard
-                  id="peony"
-                  name="Pastel Peony Dream"
-                  price={48000}
-                  image="https://images.unsplash.com/photo-1509043759401-136742328bb3?auto=format&fit=crop&w=900&q=80"
-                  lang={lang}
-                />
-                <ProductCard
-                  id="white-roses"
-                  name="White Garden Roses"
-                  price={39000}
-                  image="https://images.unsplash.com/photo-1526045612212-70caf35c14df?auto=format&fit=crop&w=900&q=80"
-                  lang={lang}
-                />
-                <ProductCard
-                  id="box"
-                  name="MUSSA Signature Box"
-                  price={55000}
-                  image="https://images.unsplash.com/photo-1501004318641-b39e6451bec6?auto=format&fit=crop&w=900&q=80"
-                  lang={lang}
-                />
-              </>
-            )}
+          <div className="floral-product-grid">
+            {products.length
+              ? products.map((product, i) => (
+                  <Link
+                    key={product.id}
+                    href={`${base}/product/${product.id}`}
+                    className="floral-product"
+                  >
+                    <div className="floral-product-image">
+                      <img
+                        src={
+                          product.imageUrl
+                            ? product.imageUrl.startsWith("http")
+                              ? product.imageUrl
+                              : `http://localhost:5074${product.imageUrl}`
+                            : `/editorial/${photos[i]}.webp`
+                        }
+                        alt={product.name}
+                        loading="lazy"
+                      />
+                      <span className="floral-image-tag">
+                        {product.stock <= 0 || !product.isAvailable
+                          ? ui[lang].product.out_of_stock
+                          : "MUSSA"}
+                      </span>
+                      <span className="floral-image-arrow">↗</span>
+                    </div>
+                    <div className="floral-product-meta">
+                      <h3>{product.name}</h3>
+                      <p>
+                        {new Intl.NumberFormat(
+                          lang === "hy"
+                            ? "hy-AM"
+                            : lang === "ru"
+                              ? "ru-RU"
+                              : "en-US",
+                        ).format(product.price)}{" "}
+                        ֏
+                      </p>
+                    </div>
+                  </Link>
+                ))
+              : photos.map((photo, i) => (
+                  <Link
+                    key={photo}
+                    href={`${base}/shop`}
+                    className="floral-product"
+                  >
+                    <div className="floral-product-image">
+                      <img
+                        src={`/editorial/${photo}.webp`}
+                        alt={c.names[i]}
+                        loading="lazy"
+                      />
+                      <span className="floral-image-tag">{c.tags[i]}</span>
+                      <span className="floral-image-arrow">↗</span>
+                    </div>
+                    <div className="floral-product-meta">
+                      <h3>{c.names[i]}</h3>
+                      <p>{c.shop} ↗</p>
+                    </div>
+                  </Link>
+                ))}
           </div>
+        </section>
+        <section className="floral-section floral-collections">
+          <div className="floral-section-heading">
+            <h2>{c.collections}</h2>
+            <span className="floral-small-note">{c.note}</span>
+          </div>
+          <div className="floral-collection-grid">
+            {["field", "garden"].map((photo, i) => (
+              <Link
+                key={photo}
+                href={`${base}/shop`}
+                className="floral-collection"
+              >
+                <img
+                  src={`/editorial/${photo}.webp`}
+                  alt={c.collectionNames[i]}
+                  loading="lazy"
+                />
+                <div>
+                  <p>{c.collectionSub[i]}</p>
+                  <h3>
+                    {c.collectionNames[i]} <span>↗</span>
+                  </h3>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+        <section className="floral-story">
+          <div className="floral-story-image">
+            <img
+              src="/editorial/studio.webp"
+              alt="Mussa floral arrangement in the studio"
+              loading="lazy"
+            />
+            <span>THE ART OF GIVING</span>
+          </div>
+          <div className="floral-story-copy">
+            <p className="floral-eyebrow">MUSSA FLORAL STUDIO · YEREVAN</p>
+            <h2>{c.story}</h2>
+            <p>{c.body}</p>
+            <Link className="floral-underline" href={`${base}/about`}>
+              {c.about}
+              <span>↗</span>
+            </Link>
+          </div>
+        </section>
+        <section className="floral-signoff">
+          <p>{c.note}</p>
+          <Link href={`${base}/shop`}>
+            {c.shop}
+            <span>⟶</span>
+          </Link>
         </section>
       </main>
-      <Footer t={t} />
+      <Footer t={ui[lang]} />
     </>
   );
 }

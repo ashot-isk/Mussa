@@ -38,6 +38,27 @@ export default function AdminUsers({ params }: { params: { lang: Lang } }) {
     if (user && user.role === "Supervisor") {
       checkAuth();
       fetchUsers();
+
+      // Auto-refresh every 5 seconds
+      const interval = setInterval(() => {
+        fetchUsers();
+      }, 5000);
+
+      // Refresh when page becomes visible
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          fetchUsers();
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener(
+          "visibilitychange",
+          handleVisibilityChange
+        );
+      };
     }
   }, [user, isLoading, router, params.lang]);
 

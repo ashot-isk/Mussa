@@ -10,8 +10,8 @@ module.exports = {
         dark: "#000000",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
-        serif: ["Playfair Display", "serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        serif: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
       boxShadow: {
         elegant: "0 2px 12px rgba(0, 0, 0, 0.08)",

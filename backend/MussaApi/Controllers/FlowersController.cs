@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Data;
 using MussaApi.Models;
+using Npgsql;
 
 namespace MussaApi.Controllers;
 
@@ -146,8 +147,26 @@ public class FlowersController : ControllerBase
             return NotFound();
         }
 
+        const string inUseMessage = "This flower is used by one or more products. Remove it from those products before deleting it.";
+        if (await _context.ProductFlowers.AnyAsync(pf => pf.FlowerId == id))
+        {
+            return Conflict(new { message = inUseMessage });
+        }
+
         _context.Flowers.Remove(flower);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.ForeignKeyViolation,
+            ConstraintName: "FK_ProductFlowers_Flowers_FlowerId"
+        })
+        {
+            // A product may have started using this flower after the check.
+            return Conflict(new { message = inUseMessage });
+        }
 
         return NoContent();
     }

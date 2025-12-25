@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "../../../providers/AuthProvider";
 
 interface OrderItem {
@@ -31,21 +31,42 @@ interface Order {
 }
 
 export default function AdminOrdersPage() {
-  const { user, token, checkAuth } = useAuth();
+  const { user, token, isLoading, checkAuth } = useAuth();
   const router = useRouter();
+  const { lang } = useParams<{ lang: string }>();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (!user) {
-      router.push("/en/admin/login");
+      router.replace(`/${lang}/admin/login`);
       return;
     }
     checkAuth();
     fetchOrders();
-  }, [user, token, router]);
+
+    // Auto-refresh every 5 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 5000);
+
+    // Refresh when page becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        fetchOrders();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user, token, isLoading, router, lang]);
 
   const fetchOrders = async () => {
     try {
@@ -74,7 +95,7 @@ export default function AdminOrdersPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ status: newStatus }),
-        }
+        },
       );
       if (res.ok) {
         fetchOrders();
@@ -99,7 +120,7 @@ export default function AdminOrdersPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ isPaid: !isPaid }),
-        }
+        },
       );
       if (res.ok) {
         fetchOrders();
@@ -128,7 +149,7 @@ export default function AdminOrdersPage() {
     }
   };
 
-  if (loading) {
+  if (isLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p>Loading orders...</p>
@@ -136,13 +157,15 @@ export default function AdminOrdersPage() {
     );
   }
 
+  if (!user) return null;
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
           <h1 className="text-2xl font-bold">Orders Management</h1>
           <button
-            onClick={() => router.push("/en/admin")}
+            onClick={() => router.push(`/${lang}/admin`)}
             className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
           >
             ← Back to Dashboard
@@ -180,7 +203,7 @@ export default function AdminOrdersPage() {
                       </div>
                       <span
                         className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(
-                          order.status
+                          order.status,
                         )}`}
                       >
                         {order.status}
@@ -239,7 +262,7 @@ export default function AdminOrdersPage() {
                         <p className="text-gray-600">
                           Date:{" "}
                           {new Date(
-                            selectedOrder.deliveryDate
+                            selectedOrder.deliveryDate,
                           ).toLocaleDateString()}
                         </p>
                       )}
@@ -292,7 +315,7 @@ export default function AdminOrdersPage() {
                           onClick={() =>
                             togglePaymentStatus(
                               selectedOrder.id,
-                              selectedOrder.isPaid
+                              selectedOrder.isPaid,
                             )
                           }
                           className={`px-3 py-1 rounded text-xs font-medium ${
@@ -340,7 +363,7 @@ export default function AdminOrdersPage() {
                           >
                             {status}
                           </button>
-                        )
+                        ),
                       )}
                     </div>
                   </div>
