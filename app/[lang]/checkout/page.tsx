@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "../../components/Header";
 import Footer from "../../components/Footer";
@@ -9,7 +9,7 @@ import { useCart } from "../../providers/CartProvider";
 
 export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
   const t = ui[params.lang];
-  const { items, total, clear, lang } = useCart();
+  const { items, total, clear, removeItem, lang } = useCart();
   const router = useRouter();
 
   const [fullName, setFullName] = useState("");
@@ -24,14 +24,75 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const [inventory, setInventory] = useState<
+    Record<string, { stock: number; isAvailable: boolean }>
+  >({});
+  const [checkingStock, setCheckingStock] = useState(true);
+  const [stockError, setStockError] = useState("");
+  const itemIds = items
+    .map((item) => item.id)
+    .sort()
+    .join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    const checkStock = async () => {
+      setCheckingStock(true);
+      try {
+        const response = await fetch("http://localhost:5074/api/products", {
+          cache: "no-store",
+        });
+        if (!response.ok) throw new Error();
+        const products = await response.json();
+        if (!cancelled) {
+          setInventory(
+            Object.fromEntries(
+              products.map(
+                (p: { id: string; stock: number; isAvailable: boolean }) => [
+                  p.id,
+                  p,
+                ],
+              ),
+            ),
+          );
+          setStockError("");
+        }
+      } catch {
+        if (!cancelled)
+          setStockError(
+            "Could not check availability. Please refresh and try again.",
+          );
+      } finally {
+        if (!cancelled) setCheckingStock(false);
+      }
+    };
+    checkStock();
+    const interval = setInterval(checkStock, 15000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [itemIds]);
+
+  const unavailable = items.some(
+    (item) =>
+      !inventory[item.id]?.isAvailable || inventory[item.id].stock < item.qty,
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (items.length === 0) {
-      setError("Cart is empty");
+      setError("Your bag is empty");
       return;
     }
 
+    if (submitting || checkingStock || stockError || unavailable) {
+      setError(
+        "Please remove unavailable items from your bag before ordering.",
+      );
+      return;
+    }
     setSubmitting(true);
     setError("");
 
@@ -67,7 +128,7 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
         const order = await response.json();
         clear();
         alert(
-          `Order placed successfully! Order ID: ${order.id}\n\nWe'll contact you at ${email} to confirm delivery.`
+          `Order placed successfully! Order ID: ${order.id}\n\nWe'll contact you at ${email} to confirm delivery.`,
         );
         router.push(`/${params.lang}`);
       } else {
@@ -85,8 +146,8 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
     lang === "ru"
       ? "Оформление заказа"
       : lang === "hy"
-      ? "Պատվերի ձևակերպում"
-      : "Checkout";
+        ? "Պատվերի ձևակերպում"
+        : "Checkout";
 
   return (
     <>
@@ -99,8 +160,8 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
               {lang === "ru"
                 ? "Корзина пуста."
                 : lang === "hy"
-                ? "Զամբյուղը դատարկ է։"
-                : "Your cart is empty."}
+                  ? "Զամբյուղը դատարկ է։"
+                  : "Your bag is empty."}
             </p>
             <a
               href={`/${params.lang}/shop`}
@@ -109,24 +170,49 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
               {lang === "ru"
                 ? "В магазин"
                 : lang === "hy"
-                ? "Խանութ"
-                : "Go to Shop"}
+                  ? "Խանութ"
+                  : "Go to Shop"}
             </a>
           </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-10">
             {/* Order Summary */}
             <div>
-              <h2 className="font-serif text-xl mb-4">Order Summary</h2>
+              <h2 className="font-serif text-xl mb-4">Your bag</h2>
               <div className="space-y-3 mb-6">
                 {items.map((item) => (
                   <div
                     key={item.id}
                     className="flex justify-between border-b border-black/5 pb-2"
                   >
-                    <span className="text-sm">
-                      {item.name} × {item.qty}
-                    </span>
+                    <div>
+                      <span className="text-sm">
+                        {item.name} × {item.qty}
+                      </span>
+                      {!checkingStock &&
+                        !stockError &&
+                        (!inventory[item.id]?.isAvailable ||
+                          inventory[item.id].stock < item.qty) && (
+                          <p className="text-sm text-red-700">
+                            {!inventory[item.id]?.isAvailable ||
+                            inventory[item.id].stock <= 0
+                              ? t.product.out_of_stock
+                              : `Only ${inventory[item.id].stock} available. Remove this item and add the quantity you need.`}
+                          </p>
+                        )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removeItem(item.id);
+                          setError("");
+                        }}
+                        disabled={submitting}
+                        className="block text-sm underline mt-2 disabled:opacity-50"
+                        aria-label={`${t.product.remove} ${item.name}`}
+                      >
+                        {t.product.remove}
+                      </button>
+                    </div>
                     <span className="text-sm font-medium">
                       {(item.price * item.qty).toLocaleString("ru-RU")} ֏
                     </span>
@@ -280,6 +366,12 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
                   />
                 </div>
 
+                {(stockError || (!checkingStock && unavailable)) && (
+                  <p role="alert" className="text-sm text-red-700">
+                    {stockError ||
+                      "Please remove unavailable items from your bag before ordering."}
+                  </p>
+                )}
                 {error && (
                   <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                     {error}
@@ -288,16 +380,18 @@ export default function CheckoutPage({ params }: { params: { lang: Lang } }) {
 
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={
+                    submitting || checkingStock || !!stockError || unavailable
+                  }
                   className="w-full px-6 py-3 bg-accent text-white rounded-full text-xs uppercase tracking-[0.12em] font-medium hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting
                     ? "Placing Order..."
                     : lang === "ru"
-                    ? "Оформить заказ"
-                    : lang === "hy"
-                    ? "Ձևակերպել պատվերը"
-                    : "Place Order"}
+                      ? "Оформить заказ"
+                      : lang === "hy"
+                        ? "Ձևակերպել պատվերը"
+                        : "Place Order"}
                 </button>
               </form>
             </div>

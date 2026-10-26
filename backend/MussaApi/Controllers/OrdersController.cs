@@ -106,6 +106,23 @@ public class OrdersController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<Order>> PostOrder(CreateOrderRequest request)
     {
+        if (request.Items.Count == 0 || request.Items.Any(item => item.Quantity <= 0))
+        {
+            return BadRequest("Your bag must contain products with positive quantities.");
+        }
+
+        // Combine repeated product IDs so their total cannot exceed stock.
+        var quantities = request.Items.GroupBy(item => item.ProductId)
+            .Select(group => new { ProductId = group.Key, Quantity = group.Sum(item => (long)item.Quantity) })
+            .OrderBy(item => item.ProductId).ToList();
+        if (quantities.Any(item => item.Quantity > int.MaxValue))
+        {
+            return BadRequest("Requested quantity is too large.");
+        }
+
+        // Stock reservations, customer changes and order creation commit together.
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+
         // Create or find customer
         var customer = await _context.Customers
             .FirstOrDefaultAsync(c => c.Email == request.Customer.Email);
@@ -148,34 +165,46 @@ public class OrdersController : ControllerBase
 
         // Create order items and calculate total
         decimal totalAmount = 0;
-        foreach (var item in request.Items)
+        foreach (var item in quantities)
         {
-            var product = await _context.Products.FindAsync(item.ProductId);
-            if (product == null || product.Stock < item.Quantity)
+            var product = await _context.Products.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+            if (product == null)
             {
-                return BadRequest($"Product {item.ProductId} not available or insufficient stock");
+                return BadRequest("A product in your bag is no longer available. Please remove it.");
+            }
+
+            var quantity = (int)item.Quantity;
+            // Conditional update prevents concurrent orders from overselling.
+            var reserved = await _context.Products
+                .Where(p => p.Id == item.ProductId && p.IsAvailable && p.Stock >= quantity)
+                .ExecuteUpdateAsync(updates => updates
+                    .SetProperty(p => p.Stock, p => p.Stock - quantity)
+                    .SetProperty(p => p.UpdatedAt, DateTime.UtcNow));
+            if (reserved == 0)
+            {
+                return BadRequest($"{product.Name} is out of stock, unavailable, or has fewer items remaining than requested. Please update your bag.");
             }
 
             var orderItem = new OrderItem
             {
                 Id = Guid.NewGuid(),
                 ProductId = item.ProductId,
-                Quantity = item.Quantity,
+                Quantity = quantity,
                 UnitPrice = product.Price,
-                Subtotal = product.Price * item.Quantity
+                Subtotal = product.Price * quantity
             };
 
             order.OrderItems.Add(orderItem);
             totalAmount += orderItem.Subtotal;
 
-            // Update product stock
-            product.Stock -= item.Quantity;
-            product.UpdatedAt = DateTime.UtcNow;
         }
 
         order.TotalAmount = totalAmount;
         _context.Orders.Add(order);
         await _context.SaveChangesAsync();
+
+        await transaction.CommitAsync();
 
         // Return simplified order object without circular references
         var createdOrder = await _context.Orders

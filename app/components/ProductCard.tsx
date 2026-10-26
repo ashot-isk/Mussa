@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useCart } from "../providers/CartProvider";
-import { Lang, ui, defaultLang } from "../i18n/config";
+import AddToCart from "./AddToCart";
+import { Lang, defaultLang } from "../i18n/config";
 
 type Props = {
   id: string;
   name: string;
   price: number;
+  stock: number;
+  isAvailable?: boolean;
   image: string;
   lang?: Lang;
   categoryName?: string;
@@ -20,15 +22,15 @@ export default function ProductCard({
   image,
   lang,
   categoryName,
+  stock,
+  isAvailable,
 }: Props) {
-  const { addItem } = useCart();
   const langUsed = lang ?? defaultLang;
-  const t = ui[langUsed];
 
   return (
     <article className="group bg-white rounded-lg overflow-hidden shadow-subtle hover:shadow-card transition-shadow duration-300">
       <Link
-        href={`/${lang}/product/${id}`}
+        href={`/${langUsed}/product/${id}`}
         className="block"
         aria-label={`Open ${name} product page`}
       >
@@ -52,12 +54,14 @@ export default function ProductCard({
         </div>
       </Link>
       <div className="p-6 pt-0">
-        <button
-          onClick={() => addItem({ id, name, price, qty: 1 })}
-          className="w-full rounded-full bg-black text-white text-xs uppercase tracking-[0.12em] py-3 font-medium hover:bg-black/90 transition-colors"
-        >
-          {t?.product?.add_to_cart || "Add to cart"}
-        </button>
+        <AddToCart
+          id={id}
+          name={name}
+          price={price}
+          stock={stock}
+          isAvailable={isAvailable}
+          lang={langUsed}
+        />
       </div>
     </article>
   );

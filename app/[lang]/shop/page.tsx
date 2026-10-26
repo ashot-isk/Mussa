@@ -13,6 +13,7 @@ type Product = {
   price: number;
   imageUrl: string;
   stock: number;
+  isAvailable: boolean;
   categoryId: string | null;
   categoryName?: string;
 };
@@ -102,7 +103,7 @@ export default function ShopPage({ params }: { params: { lang: Lang } }) {
           <div className="grid md:grid-cols-3 gap-5">
             {filteredProducts.map((product) => {
               const category = categories.find(
-                (c) => c.id === product.categoryId
+                (c) => c.id === product.categoryId,
               );
               return (
                 <ProductCard
@@ -110,6 +111,8 @@ export default function ShopPage({ params }: { params: { lang: Lang } }) {
                   id={product.id}
                   name={product.name}
                   price={product.price}
+                  stock={product.stock}
+                  isAvailable={product.isAvailable}
                   image={
                     product.imageUrl
                       ? `http://localhost:5074${product.imageUrl}`

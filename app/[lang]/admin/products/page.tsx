@@ -12,6 +12,7 @@ type Product = {
   price: number;
   imageUrl: string;
   stock: number;
+  isAvailable: boolean;
   categoryId: number | null;
   createdAt: string;
   updatedAt: string;
@@ -57,6 +58,12 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [statusError, setStatusError] = useState("");
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [deleteError, setDeleteError] = useState("");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form states
   const [name, setName] = useState("");
@@ -66,7 +73,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
   const [categoryId, setCategoryId] = useState<string>("");
   const [selectedFlowers, setSelectedFlowers] = useState<ProductFlower[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<ProductMaterial[]>(
-    []
+    [],
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -141,7 +148,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
         clearInterval(interval);
         document.removeEventListener(
           "visibilitychange",
-          handleVisibilityChange
+          handleVisibilityChange,
         );
       };
     }
@@ -185,11 +192,14 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch("http://localhost:5074/api/products", {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        "http://localhost:5074/api/products?includeInactive=true",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -215,8 +225,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     if (priceValue < totalCost) {
       setError(
         `Price cannot be less than cost (${totalCost.toFixed(
-          2
-        )} ֏). Please adjust the price.`
+          2,
+        )} ֏). Please adjust the price.`,
       );
       return;
     }
@@ -228,7 +238,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
         const requiredQuantity = sf.quantity * stockQuantity;
         if (flower.stockQuantity < requiredQuantity) {
           setError(
-            `Not enough stock for ${flower.name}. Required: ${requiredQuantity}, Available: ${flower.stockQuantity}`
+            `Not enough stock for ${flower.name}. Required: ${requiredQuantity}, Available: ${flower.stockQuantity}`,
           );
           return;
         }
@@ -246,7 +256,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
               material.name
             }. Required: ${requiredQuantityCm}cm, Available: ${(
               material.stockQuantity * 100
-            ).toFixed(0)}cm`
+            ).toFixed(0)}cm`,
           );
           return;
         }
@@ -273,7 +283,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
           categoryId: categoryId || null,
           imageUrl: "",
           isFeatured: false,
-          isAvailable: true,
+          isAvailable,
           flowers: selectedFlowers,
           materials: selectedMaterials,
         };
@@ -287,7 +297,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify(updatedProduct),
-          }
+          },
         );
 
         if (response.ok) {
@@ -316,19 +326,22 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
           categoryId: categoryId || null,
           imageUrl: "",
           isFeatured: false,
-          isAvailable: true,
+          isAvailable,
           flowers: selectedFlowers,
           materials: selectedMaterials,
         };
 
-        const response = await fetch("http://localhost:5074/api/products", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+        const response = await fetch(
+          "http://localhost:5074/api/products",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(productData),
           },
-          body: JSON.stringify(productData),
-        });
+        );
 
         if (response.ok) {
           const createdProduct = await response.json();
@@ -374,7 +387,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
             Authorization: `Bearer ${token}`,
           },
           body: formData,
-        }
+        },
       );
 
       if (!response.ok) {
@@ -389,6 +402,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
 
   const handleEdit = async (product: Product) => {
     setEditingId(product.id);
+    setIsAvailable(product.isAvailable);
     setName(product.name);
     setDescription(product.description);
     setPrice(product.price.toString());
@@ -398,10 +412,12 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     // Fetch full product details including flowers and materials
     try {
       const response = await fetch(
-        `http://localhost:5074/api/products/${product.id}`
+        `http://localhost:5074/api/products/${product.id}`,
+        { headers: { Authorization: `Bearer ${token}` } },
       );
       if (response.ok) {
         const fullProduct = await response.json();
+        setIsAvailable(fullProduct.isAvailable);
 
         // Load flowers
         if (fullProduct.flowers && fullProduct.flowers.length > 0) {
@@ -409,7 +425,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
             (f: any) => ({
               flowerId: f.flowerId,
               quantity: f.quantity,
-            })
+            }),
           );
           setSelectedFlowers(loadedFlowers);
         }
@@ -420,7 +436,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
             (m: any) => ({
               materialId: m.materialId,
               quantity: m.quantity,
-            })
+            }),
           );
           setSelectedMaterials(loadedMaterials);
         }
@@ -430,29 +446,87 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     }
   };
 
+  const handleStatusChange = async (product: Product) => {
+    if (updatingStatusId !== null) return;
+    setStatusError("");
+    setUpdatingStatusId(product.id);
+    try {
+      const response = await fetch(
+        `http://localhost:5074/api/products/${product.id}/availability`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ isAvailable: !product.isAvailable }),
+        },
+      );
+      if (!response.ok) {
+        setStatusError(
+          response.status === 401
+            ? "Your session has expired. Please sign in again."
+            : "Could not update product status. Please try again.",
+        );
+        if (response.status === 401) checkAuth();
+        return;
+      }
+      const updated = await response.json();
+      setProducts((current) =>
+        current.map((p) =>
+          p.id === product.id ? { ...p, isAvailable: updated.isAvailable } : p,
+        ),
+      );
+      if (editingId === product.id) setIsAvailable(updated.isAvailable);
+    } catch {
+      setStatusError("Could not connect to the API. Please try again.");
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
+
   const handleDelete = async (id: string) => {
+    if (deletingId !== null) return;
     if (!confirm("Are you sure you want to delete this product?")) return;
 
+    setDeleteError("");
+    setDeletingId(id);
     try {
       const response = await fetch(`http://localhost:5074/api/products/${id}`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (response.ok) {
+      if (response.ok || response.status === 404) {
+        setProducts((current) =>
+          current.filter((product) => product.id !== id),
+        );
+        if (editingId === id) resetForm();
         await fetchProducts();
+      } else if (response.status === 409) {
+        const data = await response.json();
+        setDeleteError(
+          data.message ||
+            "This product is used by an order and cannot be deleted.",
+        );
+      } else if (response.status === 401) {
+        setDeleteError("Your session has expired. Please sign in again.");
+        checkAuth();
+      } else if (response.status === 403) {
+        setDeleteError("You do not have permission to delete products.");
       } else {
-        setError("Failed to delete product");
+        setDeleteError("Could not delete the product. Please try again.");
       }
-    } catch (err) {
-      setError("Network error");
+    } catch {
+      setDeleteError("Could not connect to the API. Please try again.");
+    } finally {
+      setDeletingId(null);
     }
   };
 
   const resetForm = () => {
     setEditingId(null);
+    setIsAvailable(true);
     setName("");
     setDescription("");
     setPrice("");
@@ -462,6 +536,12 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
     setSelectedFlowers([]);
     setSelectedMaterials([]);
   };
+
+  const visibleProducts = products.filter(
+    (product) =>
+      statusFilter === "all" ||
+      (statusFilter === "active" ? product.isAvailable : !product.isAvailable),
+  );
 
   if (isLoading || loading) {
     return (
@@ -504,11 +584,36 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
             <div className="bg-white shadow overflow-hidden sm:rounded-md">
               <div className="px-4 py-5 sm:px-6">
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  Products ({products.length})
+                  Products ({visibleProducts.length})
                 </h3>
               </div>
+              {deleteError && (
+                <p
+                  role="alert"
+                  className="mx-6 mb-4 rounded-md bg-red-50 p-4 text-sm text-red-700"
+                >
+                  {deleteError}
+                </p>
+              )}
+              {statusError && (
+                <p role="alert" className="mx-6 mb-4 text-sm text-red-700">
+                  {statusError}
+                </p>
+              )}
+              <label className="block mx-6 mb-4 text-sm">
+                Filter by status
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="ml-3 border rounded p-2"
+                >
+                  <option value="all">All products</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
               <ul className="divide-y divide-gray-200">
-                {products.map((product) => (
+                {visibleProducts.map((product) => (
                   <li key={product.id} className="px-4 py-4 sm:px-6">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -524,13 +629,29 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                             <h4 className="text-sm font-medium text-gray-900">
                               {product.name}
                             </h4>
+                            <span
+                              className={`inline-block rounded px-2 py-1 text-xs ${product.isAvailable ? "bg-green-50 text-green-800" : "bg-gray-100 text-gray-600"}`}
+                            >
+                              {product.isAvailable ? "Active" : "Inactive"}
+                            </span>
                             <p className="text-sm text-gray-500">
                               ${product.price} • Stock: {product.stock}
                             </p>
                           </div>
                         </div>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleStatusChange(product)}
+                          disabled={updatingStatusId !== null}
+                          className="text-sm underline disabled:opacity-50"
+                        >
+                          {updatingStatusId === product.id
+                            ? "Saving..."
+                            : product.isAvailable
+                              ? "Deactivate"
+                              : "Activate"}
+                        </button>
                         <button
                           onClick={() => handleEdit(product)}
                           className="text-indigo-600 hover:text-indigo-900 text-sm"
@@ -539,17 +660,18 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                         </button>
                         <button
                           onClick={() => handleDelete(product.id)}
-                          className="text-red-600 hover:text-red-900 text-sm"
+                          disabled={deletingId !== null}
+                          className="text-red-600 hover:text-red-900 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Delete
+                          {deletingId === product.id ? "Deleting..." : "Delete"}
                         </button>
                       </div>
                     </div>
                   </li>
                 ))}
-                {products.length === 0 && !loading && (
+                {visibleProducts.length === 0 && !loading && (
                   <li className="px-4 py-8 text-center text-gray-500">
-                    No products found. Create your first product below.
+                    No products match this status.
                   </li>
                 )}
               </ul>
@@ -564,6 +686,14 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
               </div>
               <div className="px-4 py-5 sm:p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  <label className="flex items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={isAvailable}
+                      onChange={(e) => setIsAvailable(e.target.checked)}
+                    />
+                    Active — visible in the shop and available to order
+                  </label>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">
                       Name
@@ -673,7 +803,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                             <input
                               type="checkbox"
                               checked={selectedFlowers.some(
-                                (f) => f.flowerId === flower.id
+                                (f) => f.flowerId === flower.id,
                               )}
                               onChange={(e) => {
                                 if (e.target.checked) {
@@ -684,8 +814,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                 } else {
                                   setSelectedFlowers(
                                     selectedFlowers.filter(
-                                      (f) => f.flowerId !== flower.id
-                                    )
+                                      (f) => f.flowerId !== flower.id,
+                                    ),
                                   );
                                 }
                               }}
@@ -695,7 +825,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                               {flower.name} (Stock: {flower.stockQuantity})
                             </span>
                             {selectedFlowers.some(
-                              (f) => f.flowerId === flower.id
+                              (f) => f.flowerId === flower.id,
                             ) && (
                               <input
                                 type="number"
@@ -703,7 +833,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                 max={flower.stockQuantity}
                                 value={
                                   selectedFlowers.find(
-                                    (f) => f.flowerId === flower.id
+                                    (f) => f.flowerId === flower.id,
                                   )?.quantity || 1
                                 }
                                 onChange={(e) => {
@@ -715,8 +845,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                             quantity:
                                               parseInt(e.target.value) || 1,
                                           }
-                                        : f
-                                    )
+                                        : f,
+                                    ),
                                   );
                                 }}
                                 className="w-20 px-2 py-1 border-gray-300 rounded-md text-sm"
@@ -744,7 +874,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                             <input
                               type="checkbox"
                               checked={selectedMaterials.some(
-                                (m) => m.materialId === material.id
+                                (m) => m.materialId === material.id,
                               )}
                               onChange={(e) => {
                                 if (e.target.checked) {
@@ -755,8 +885,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                 } else {
                                   setSelectedMaterials(
                                     selectedMaterials.filter(
-                                      (m) => m.materialId !== material.id
-                                    )
+                                      (m) => m.materialId !== material.id,
+                                    ),
                                   );
                                 }
                               }}
@@ -768,7 +898,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                               Price: {material.unitPrice}֏/m)
                             </span>
                             {selectedMaterials.some(
-                              (m) => m.materialId === material.id
+                              (m) => m.materialId === material.id,
                             ) && (
                               <input
                                 type="number"
@@ -776,7 +906,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                 max={material.stockQuantity * 100}
                                 value={
                                   selectedMaterials.find(
-                                    (m) => m.materialId === material.id
+                                    (m) => m.materialId === material.id,
                                   )?.quantity || 1
                                 }
                                 onChange={(e) => {
@@ -788,8 +918,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                                             quantity:
                                               parseInt(e.target.value) || 1,
                                           }
-                                        : m
-                                    )
+                                        : m,
+                                    ),
                                   );
                                 }}
                                 className="w-20 px-2 py-1 border-gray-300 rounded-md text-sm"
@@ -811,7 +941,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                       <div className="space-y-1 text-sm">
                         {selectedFlowers.map((sf) => {
                           const flower = flowers.find(
-                            (f) => f.id === sf.flowerId
+                            (f) => f.id === sf.flowerId,
                           );
                           if (!flower) return null;
                           const cost = flower.unitPrice * sf.quantity;
@@ -829,7 +959,7 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                         })}
                         {selectedMaterials.map((sm) => {
                           const material = materials.find(
-                            (m) => m.id === sm.materialId
+                            (m) => m.id === sm.materialId,
                           );
                           if (!material) return null;
                           // Material price is per meter, quantity is in cm
@@ -888,8 +1018,8 @@ export default function AdminProducts({ params }: { params: { lang: Lang } }) {
                       {submitting || uploading
                         ? "Saving..."
                         : editingId
-                        ? "Update Product"
-                        : "Add Product"}
+                          ? "Update Product"
+                          : "Add Product"}
                     </button>
 
                     {editingId && (

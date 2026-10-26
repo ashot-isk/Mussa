@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MussaApi.Data;
 using MussaApi.Models;
+using Npgsql;
 
 namespace MussaApi.Controllers;
 
@@ -22,9 +23,15 @@ public class ProductsController : ControllerBase
     // GET: api/products
     [HttpGet]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<object>>> GetProducts()
+    public async Task<ActionResult<IEnumerable<object>>> GetProducts([FromQuery] bool includeInactive = false)
     {
+        if (includeInactive && User.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized();
+        }
+
         var products = await _context.Products
+            .Where(p => includeInactive || p.IsAvailable)
             .Include(p => p.Category)
             .ToListAsync();
         
@@ -59,7 +66,7 @@ public class ProductsController : ControllerBase
                 .ThenInclude(pm => pm.Material)
             .FirstOrDefaultAsync(p => p.Id == id);
 
-        if (product == null)
+        if (product == null || (!product.IsAvailable && User.Identity?.IsAuthenticated != true))
         {
             return NotFound();
         }
@@ -297,6 +304,20 @@ public class ProductsController : ControllerBase
         return NoContent();
     }
 
+    // Change visibility without modifying stock, recipes, or existing orders.
+    [HttpPatch("{id}/availability")]
+    [Authorize]
+    public async Task<IActionResult> SetAvailability(Guid id, ProductAvailabilityRequest request)
+    {
+        var product = await _context.Products.FindAsync(id);
+        if (product == null) return NotFound();
+
+        product.IsAvailable = request.IsAvailable;
+        product.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return Ok(new { product.Id, product.IsAvailable });
+    }
+
     // DELETE: api/products/5
     [HttpDelete("{id}")]
     [Authorize]
@@ -308,8 +329,26 @@ public class ProductsController : ControllerBase
             return NotFound();
         }
 
+        const string orderedMessage = "This product belongs to an order and cannot be deleted. Order history must be preserved.";
+        if (await _context.OrderItems.AnyAsync(item => item.ProductId == id))
+        {
+            return Conflict(new { message = orderedMessage });
+        }
+
         _context.Products.Remove(product);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException
+        {
+            SqlState: PostgresErrorCodes.ForeignKeyViolation,
+            ConstraintName: "FK_OrderItems_Products_ProductId"
+        })
+        {
+            // An order may have referenced the product after the initial check.
+            return Conflict(new { message = orderedMessage });
+        }
 
         return NoContent();
     }
@@ -382,4 +421,9 @@ public class ProductMaterialDto
 {
     public int MaterialId { get; set; }
     public int Quantity { get; set; }
+}
+
+public class ProductAvailabilityRequest
+{
+    public required bool IsAvailable { get; set; }
 }

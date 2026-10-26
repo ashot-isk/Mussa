@@ -8,6 +8,7 @@ export type CartItem = {
   name: string;
   price: number;
   qty: number;
+  stock: number;
 };
 
 type CartContextType = {
@@ -23,7 +24,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export default function CartProvider({
   children,
-  lang
+  lang,
 }: {
   children: ReactNode;
   lang: Lang;
@@ -31,19 +32,26 @@ export default function CartProvider({
   const [items, setItems] = useState<CartItem[]>([]);
 
   const addItem = (item: CartItem) => {
-    setItems(prev => {
-      const existing = prev.find(p => p.id === item.id);
+    if (!Number.isInteger(item.qty) || item.qty <= 0 || item.stock <= 0) return;
+    setItems((prev) => {
+      const existing = prev.find((p) => p.id === item.id);
       if (existing) {
-        return prev.map(p =>
-          p.id === item.id ? { ...p, qty: p.qty + item.qty } : p
+        return prev.map((p) =>
+          p.id === item.id
+            ? {
+                ...p,
+                stock: item.stock,
+                qty: Math.min(p.qty + item.qty, item.stock),
+              }
+            : p,
         );
       }
-      return [...prev, item];
+      return [...prev, { ...item, qty: Math.min(item.qty, item.stock) }];
     });
   };
 
   const removeItem = (id: string) => {
-    setItems(prev => prev.filter(p => p.id !== id));
+    setItems((prev) => prev.filter((p) => p.id !== id));
   };
 
   const clear = () => setItems([]);
@@ -51,7 +59,9 @@ export default function CartProvider({
   const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clear, total, lang }}>
+    <CartContext.Provider
+      value={{ items, addItem, removeItem, clear, total, lang }}
+    >
       {children}
     </CartContext.Provider>
   );

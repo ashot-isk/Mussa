@@ -17,7 +17,10 @@
     "heading": "Featured Collection"
   },
   "product": {
-    "add_to_cart": "Add to cart",
+    "add_to_bag": "Add to bag",
+    "out_of_stock": "Out of stock",
+    "bag_limit": "All available items are in your bag",
+    "remove": "Remove",
     "composition": "Composition",
     "placeholder": "Product description coming soon.",
     "products": {

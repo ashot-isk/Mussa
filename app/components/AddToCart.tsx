@@ -8,20 +8,34 @@ type Props = {
   name: string;
   price: number;
   lang: Lang;
+  stock: number;
+  isAvailable?: boolean;
 };
 
-export default function AddToCart({ id, name, price, lang }: Props) {
-  const { addItem } = useCart();
+export default function AddToCart({
+  id,
+  name,
+  price,
+  lang,
+  stock,
+  isAvailable = true,
+}: Props) {
+  const { addItem, items } = useCart();
+  const outOfStock = !isAvailable || stock <= 0;
+  const atLimit = (items.find((item) => item.id === id)?.qty ?? 0) >= stock;
   const t = ui[lang];
 
   return (
     <button
-      onClick={() => addItem({ id, name, price, qty: 1 })}
-      className="w-full md:w-auto rounded-full bg-black text-white text-sm uppercase tracking-[0.12em] py-3 px-6 font-medium hover:bg-black/90 transition-colors"
+      disabled={outOfStock || atLimit}
+      onClick={() => addItem({ id, name, price, qty: 1, stock })}
+      className="w-full md:w-auto rounded-full bg-black text-white text-sm uppercase tracking-[0.12em] py-3 px-6 font-medium hover:bg-black/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {t?.product?.add_to_cart
-        ? `${t.product.add_to_cart} — ${price.toLocaleString("ru-RU")} ֏`
-        : `Add to cart — ${price.toLocaleString("ru-RU")} ֏`}
+      {outOfStock
+        ? t.product.out_of_stock
+        : atLimit
+          ? t.product.bag_limit
+          : `${t.product.add_to_bag} — ${price.toLocaleString("ru-RU")} ֏`}
     </button>
   );
 }

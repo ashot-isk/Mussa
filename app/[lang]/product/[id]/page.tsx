@@ -15,6 +15,7 @@ type Product = {
   price: number;
   imageUrl: string;
   stock: number;
+  isAvailable: boolean;
   categoryId: number | null;
   categoryName?: string;
 };
@@ -32,7 +33,7 @@ export default function ProductPage({ params }: Params) {
   const fetchProduct = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5074/api/products/${params.id}`
+        `http://localhost:5074/api/products/${params.id}`,
       );
       if (response.ok) {
         const data = await response.json();
@@ -115,12 +116,14 @@ export default function ProductPage({ params }: Params) {
               </h3>
               <p
                 className={`text-sm ${
-                  product.stock > 0 ? "text-green-600" : "text-red-600"
+                  product.stock > 0 && product.isAvailable
+                    ? "text-green-600"
+                    : "text-red-600"
                 }`}
               >
-                {product.stock > 0
+                {product.stock > 0 && product.isAvailable
                   ? `In Stock (${product.stock} available)`
-                  : "Out of Stock"}
+                  : t.product.out_of_stock}
               </p>
             </div>
 
@@ -129,6 +132,8 @@ export default function ProductPage({ params }: Params) {
                 id={product.id}
                 name={product.name}
                 price={product.price}
+                stock={product.stock}
+                isAvailable={product.isAvailable}
                 lang={params.lang}
               />
             </div>
